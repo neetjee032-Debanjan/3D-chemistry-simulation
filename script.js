@@ -76,8 +76,8 @@ function loadModel() {
 
   // OXYGEN
   else if (input === "o" || input === "oxygen") {
-    createAtom(0, 0xff4444, 2);
-  }
+  createAtom(0, 0xff4444, 2);
+}
 
   // H2O (water)
   else if (input === "h2o") {
