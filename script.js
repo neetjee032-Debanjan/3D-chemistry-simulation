@@ -162,20 +162,11 @@ createElectrons(Z) {
     this.createElectrons(z);
   }
 
-  animate() {
-    requestAnimationFrame(() => this.animate());
-
-    if (this.spin) {
-      this.electrons.forEach(e => {
-        e.angle += 0.02;
-        e.mesh.position.x = Math.cos(e.angle) * e.r;
-        e.mesh.position.y = Math.sin(e.angle) * e.r;
-      });
-    }
-
-    this.renderer.render(this.scene, this.camera);
-  }
-}
+this.electrons.forEach(e => {
+  e.angle += e.speed;
+  e.mesh.position.x = Math.cos(e.angle) * e.radius;
+  e.mesh.position.y = Math.sin(e.angle) * e.radius;
+});
 
 // ===============================
 // ORBITAL (SAFE)
