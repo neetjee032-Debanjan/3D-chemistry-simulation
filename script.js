@@ -51,19 +51,30 @@ function setText(id,val){
 // ===============================
 // LOAD ELEMENT (ALL 118 SUPPORTED)
 // ===============================
-function loadElement(){
-  const sel=document.getElementById("element-select");
-  if(!sel) return;
+function loadElement() {
+  const sel = document.getElementById("element-select");
+  if (!sel) return;
 
-  let el = ELEMENTS[sel.value] || getElement(parseInt(sel.value));
+  // ✅ EXTRACT Z FROM STRING (THIS IS THE FIX)
+  const match = sel.value.match(/Z=(\d+)/);
+  if (!match) return;
 
-  setText("el-symbol", sel.value);
+  const Z = parseInt(match[1]);
+
+  const el = {
+    Z: Z,
+    mass: Math.round(Z * 2.2 * 100) / 100
+  };
+
   setText("el-z", el.Z);
   setText("el-mass", el.mass);
   setText("el-protons", el.Z);
   setText("el-electrons", el.Z);
 
-  if(window.atomRenderer){
+  // optional fallback updates
+  setText("el-symbol", sel.value.split("(")[1]?.split(")")[0] || "");
+  
+  if (window.atomRenderer?.update) {
     window.atomRenderer.update(el.Z);
   }
 }
