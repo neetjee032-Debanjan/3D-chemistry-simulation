@@ -40,17 +40,21 @@ function createAtom(x, color, electrons = 1) {
       new THREE.MeshBasicMaterial({ color: 0x00ffff })
     );
 
-    e.angle = Math.random() * Math.PI * 2;
+    e.angle = (Math.PI * 2 * i) / electrons;
     e.radius = 1.5;
 
-    group.add(e);
-    objects.push(e);
+    // ⭐ IMPORTANT FIX: set initial visible position
+    e.position.x = Math.cos(e.angle) * e.radius;
+    e.position.z = Math.sin(e.angle) * e.radius;
 
     e.tick = () => {
       e.angle += 0.03;
       e.position.x = Math.cos(e.angle) * e.radius;
       e.position.z = Math.sin(e.angle) * e.radius;
     };
+
+    group.add(e);
+    objects.push(e);
   }
 
   group.position.x = x;
@@ -60,8 +64,6 @@ function createAtom(x, color, electrons = 1) {
 
   return group;
 }
-
-// MODE SYSTEM
 function loadModel() {
   const input = document.getElementById("input").value.toLowerCase();
 
