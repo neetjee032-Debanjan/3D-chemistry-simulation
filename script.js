@@ -220,8 +220,9 @@ class OrbitalRenderer{
 // ===============================
 // GLOBAL INIT
 // ===============================
-window.addEventListener("DOMContentLoaded",()=>{
-  window.atomRenderer=new AtomRenderer("atom-canvas");
-  window.orbitalRenderer=new OrbitalRenderer("orbital-canvas");
+window.addEventListener("DOMContentLoaded", () => {
+  window.atomRenderer = new AtomRenderer("atom-canvas");
+  window.orbitalRenderer = new OrbitalRenderer("orbital-canvas");
+
   loadElement();
 });
