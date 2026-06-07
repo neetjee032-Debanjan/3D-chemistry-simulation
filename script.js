@@ -12,55 +12,52 @@ const camera = new THREE.PerspectiveCamera(
 // Renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000);
 document.body.appendChild(renderer.domElement);
 
-// Controls
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-
-// Nucleus (3D sphere)
-const nucleusGeometry = new THREE.SphereGeometry(1, 32, 32);
-const nucleusMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
+// Nucleus
+const nucleus = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 32, 32),
+  new THREE.MeshBasicMaterial({ color: 0xff0000 })
+);
 scene.add(nucleus);
 
 // Electrons
 const electrons = [];
-const electronCount = 3;
+for (let i = 0; i < 3; i++) {
+  const e = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0x00ffff })
+  );
 
-for (let i = 0; i < electronCount; i++) {
-  const geometry = new THREE.SphereGeometry(0.2, 16, 16);
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-  const electron = new THREE.Mesh(geometry, material);
+  e.angle = Math.random() * Math.PI * 2;
+  e.radius = 2 + i * 0.6;
 
-  electron.angle = Math.random() * Math.PI * 2;
-  electron.radius = 2 + i * 0.5;
-
-  scene.add(electron);
-  electrons.push(electron);
+  scene.add(e);
+  electrons.push(e);
 }
 
 // Camera position
 camera.position.z = 6;
 
-// Animation
+// Animate
 function animate() {
   requestAnimationFrame(animate);
 
-  electrons.forEach((e, index) => {
-    e.angle += 0.02 + index * 0.002;
+  electrons.forEach((e, i) => {
+    e.angle += 0.02 + i * 0.005;
 
     e.position.x = Math.cos(e.angle) * e.radius;
     e.position.z = Math.sin(e.angle) * e.radius;
   });
 
-  controls.update();
   renderer.render(scene, camera);
 }
 
 animate();
 
 // Resize fix
-window.addEventListener('resize', () => {
+window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
