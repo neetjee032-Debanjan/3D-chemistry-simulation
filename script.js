@@ -18,34 +18,53 @@ document.body.appendChild(renderer.domElement);
 // Nucleus
 const nucleus = new THREE.Mesh(
   new THREE.SphereGeometry(1, 32, 32),
-  new THREE.MeshBasicMaterial({ color: 0xff0000 })
+  new THREE.MeshBasicMaterial({ color: 0xff4444 })
 );
 scene.add(nucleus);
 
-// Electrons
+// Shell radii
+const shells = [2, 3.5];
+
+// Electron config (Bohr model style)
 const electrons = [];
-for (let i = 0; i < 3; i++) {
+
+// Shell 1 (max 2 electrons)
+for (let i = 0; i < 2; i++) {
   const e = new THREE.Mesh(
-    new THREE.SphereGeometry(0.2, 16, 16),
+    new THREE.SphereGeometry(0.15, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0x00ffff })
   );
 
   e.angle = Math.random() * Math.PI * 2;
-  e.radius = 2 + i * 0.6;
+  e.radius = shells[0];
+
+  scene.add(e);
+  electrons.push(e);
+}
+
+// Shell 2 (max 2 for demo, can extend to 8 later)
+for (let i = 0; i < 2; i++) {
+  const e = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0x00ff88 })
+  );
+
+  e.angle = Math.random() * Math.PI * 2;
+  e.radius = shells[1];
 
   scene.add(e);
   electrons.push(e);
 }
 
 // Camera position
-camera.position.z = 6;
+camera.position.z = 7;
 
-// Animate
+// Animation
 function animate() {
   requestAnimationFrame(animate);
 
   electrons.forEach((e, i) => {
-    e.angle += 0.02 + i * 0.005;
+    e.angle += 0.02 + i * 0.002;
 
     e.position.x = Math.cos(e.angle) * e.radius;
     e.position.z = Math.sin(e.angle) * e.radius;
@@ -56,7 +75,7 @@ function animate() {
 
 animate();
 
-// Resize fix
+// Resize
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
