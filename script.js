@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////
-// ATOMLAB FINAL ENGINE — TRUE 3D ORBIT VERSION
+// ATOMLAB SAFE FULL ENGINE (NAVIGATION PROTECTED)
 /////////////////////////////////////////////////////
 
 // ===============================
@@ -8,7 +8,7 @@
 window.STATE = { Z: 1, symbol: "H" };
 
 // ===============================
-// ELEMENTS (1–118)
+// 118 ELEMENT LIST
 // ===============================
 const ELEMENTS = [
 "H","He","Li","Be","B","C","N","O","F","Ne",
@@ -25,24 +25,7 @@ const ELEMENTS = [
 ];
 
 // ===============================
-// INIT DROPDOWN (118 ELEMENTS)
-// ===============================
-function initDropdown() {
-  const sel = document.getElementById("element-select");
-  if (!sel) return;
-
-  sel.innerHTML = "";
-  for (let i = 1; i <= 118; i++) {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.textContent = `${ELEMENTS[i - 1]} (Z=${i})`;
-    sel.appendChild(opt);
-  }
-  sel.value = 6;
-}
-
-// ===============================
-// SAFE TEXT
+// SAFE TEXT UPDATE
 // ===============================
 function setText(id, val) {
   const el = document.getElementById(id);
@@ -50,7 +33,23 @@ function setText(id, val) {
 }
 
 // ===============================
-// LOAD ELEMENT (SYNC FIXED)
+// NAVIGATION (RESTORED - DO NOT BREAK)
+// ===============================
+window.showPage = function (id) {
+  const pages = document.querySelectorAll("div[id^='page-']");
+  pages.forEach(p => (p.style.display = "none"));
+
+  const target = document.getElementById("page-" + id);
+  if (target) target.style.display = "flex";
+
+  // re-init atomic ONLY when needed
+  if (id === "atomic" && window.atomRenderer) {
+    window.atomRenderer.update(window.STATE.Z);
+  }
+};
+
+// ===============================
+// LOAD ELEMENT
 // ===============================
 function loadElement() {
   const sel = document.getElementById("element-select");
@@ -72,7 +71,7 @@ function loadElement() {
 }
 
 // ===============================
-// ⭐ TRUE 3D ATOM RENDERER (FIXED PHYSICS STYLE)
+// ATOM RENDERER (STABLE 3D SYSTEM)
 // ===============================
 class AtomRenderer {
   constructor(id) {
@@ -92,9 +91,7 @@ class AtomRenderer {
 
     this.renderer.setSize(350, 350);
 
-    // ===============================
-    // DRAG ROTATION
-    // ===============================
+    // rotation
     this.rx = 0;
     this.ry = 0;
     this.drag = false;
@@ -117,92 +114,74 @@ class AtomRenderer {
       this.py = e.clientY;
     });
 
-    // ===============================
-    // NUCLEUS
-    // ===============================
+    // nucleus
     this.nucleus = new THREE.Mesh(
       new THREE.SphereGeometry(0.7, 24, 24),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
+
     this.scene.add(this.nucleus);
 
-    // containers
-    this.shellGroups = [];
     this.electrons = [];
+    this.shells = [];
 
     this.createElectrons(1);
     this.animate();
   }
 
-  // ===============================
-  // SHELL STRUCTURE (K L M N O P Q)
-  // ===============================
-  getShellCapacity() {
+  // shell structure
+  getShells() {
     return [2, 8, 18, 32, 50, 72, 98];
   }
 
-  // ===============================
-  // BUILD ATOM
-  // ===============================
   createElectrons(Z) {
-    // clear old
-    this.shellGroups.forEach(g => this.scene.remove(g));
-    this.shellGroups = [];
-    this.electrons = [];
+    this.electrons.forEach(e => this.scene.remove(e));
+    this.shells.forEach(s => this.scene.remove(s));
 
-    const shells = this.getShellCapacity();
+    this.electrons = [];
+    this.shells = [];
+
+    const shells = this.getShells();
     let remaining = Z;
-    let baseR = 2;
+    let base = 2;
 
     for (let s = 0; s < shells.length; s++) {
       if (remaining <= 0) break;
 
       const count = Math.min(shells[s], remaining);
-      const radius = baseR + s * 1.6;
+      const radius = base + s * 1.6;
 
-      // ===============================
-      // SHELL GROUP (TRUE 3D ORBIT PLANE)
-      // ===============================
-      const group = new THREE.Group();
-
-      // random 3D tilt (IMPORTANT FIX)
-      group.rotation.x = Math.random() * Math.PI;
-      group.rotation.y = Math.random() * Math.PI;
-      group.rotation.z = Math.random() * Math.PI;
-
-      this.scene.add(group);
-      this.shellGroups.push(group);
-
-      // orbit ring (visual guide)
+      // orbit ring (visible)
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(radius, 0.01, 10, 120),
         new THREE.MeshBasicMaterial({
           color: 0xffffff,
-          transparent: true,
-          opacity: 0.25
+          opacity: 0.2,
+          transparent: true
         })
       );
 
-      group.add(ring);
+      ring.rotation.x = Math.random() * Math.PI;
+      ring.rotation.y = Math.random() * Math.PI;
 
-      // ===============================
-      // ELECTRONS (MOVE IN LOCAL PLANE)
-      // ===============================
+      this.scene.add(ring);
+      this.shells.push(ring);
+
       for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2;
-
         const electron = new THREE.Mesh(
           new THREE.SphereGeometry(0.12, 12, 12),
           new THREE.MeshBasicMaterial({ color: 0x00d4ff })
         );
 
         electron.userData = {
-          angle,
-          radius,
-          speed: 0.02 + s * 0.003
+          angle: (i / count) * Math.PI * 2,
+          radius: radius,
+          speed: 0.02 + s * 0.002,
+          tiltX: ring.rotation.x,
+          tiltY: ring.rotation.y
         };
 
-        group.add(electron);
+        this.scene.add(electron);
         this.electrons.push(electron);
       }
 
@@ -214,25 +193,18 @@ class AtomRenderer {
     this.createElectrons(Z);
   }
 
-  // ===============================
-  // ANIMATION LOOP (TRUE 3D ORBIT MOTION)
-  // ===============================
   animate() {
     requestAnimationFrame(() => this.animate());
 
-    // rotate whole atom
     this.scene.rotation.x = this.rx;
     this.scene.rotation.y = this.ry;
 
-    // electrons move inside tilted shells
     for (let e of this.electrons) {
       e.userData.angle += e.userData.speed;
 
-      const r = e.userData.radius;
-
-      e.position.x = Math.cos(e.userData.angle) * r;
-      e.position.y = Math.sin(e.userData.angle) * r;
-      e.position.z = Math.sin(e.userData.angle * 0.6) * (r * 0.4);
+      e.position.x = Math.cos(e.userData.angle) * e.userData.radius;
+      e.position.y = Math.sin(e.userData.angle) * e.userData.radius;
+      e.position.z = Math.sin(e.userData.angle * 0.7) * (e.userData.radius * 0.35);
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -240,15 +212,14 @@ class AtomRenderer {
 }
 
 // ===============================
-// INIT
+// INIT (SAFE)
 // ===============================
 window.addEventListener("DOMContentLoaded", () => {
-  initDropdown();
+  const sel = document.getElementById("element-select");
+
+  if (sel) sel.addEventListener("change", loadElement);
 
   window.atomRenderer = new AtomRenderer("atom-canvas");
-
-  const sel = document.getElementById("element-select");
-  if (sel) sel.addEventListener("change", loadElement);
 
   loadElement();
 });
