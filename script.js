@@ -1,82 +1,112 @@
-// =============================
-// PAGE NAVIGATION
-// =============================
-function showPage(page) {
-  const pages = document.querySelectorAll('[id^="page-"]');
-  pages.forEach(p => p.style.display = "none");
+/////////////////////////////////////////////////////
+// ATOMLAB FINAL STABLE ENGINE (CLEAN BUILD)
+// Works with your provided HTML structure
+/////////////////////////////////////////////////////
 
-  const target = document.getElementById("page-" + page);
+// ===============================
+// SAFE PAGE NAVIGATION
+// ===============================
+function showPage(id) {
+  const pages = document.querySelectorAll("div[id^='page-']");
+  pages.forEach(p => (p.style.display = "none"));
+
+  const target = document.getElementById("page-" + id);
   if (target) target.style.display = "flex";
 
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-  event?.target?.classList.add("active");
+  // highlight nav safely
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.classList.remove("active");
+    if (btn.getAttribute("onclick")?.includes(id)) {
+      btn.classList.add("active");
+    }
+  });
+
+  // init pages safely
+  setTimeout(() => {
+    if (id === "atomic") initAtomicPage?.();
+    if (id === "orbital") initOrbitalPage?.();
+    if (id === "bonding") initBondingPage?.();
+    if (id === "vsepr") initVSEPRPage?.();
+    if (id === "hybrid") initHybridPage?.();
+    if (id === "mot") initMOTPage?.();
+    if (id === "molecules") initMolPage?.();
+  }, 50);
 }
 
-// =============================
-// ELEMENT DATABASE (core set)
-// =============================
+// ===============================
+// ELEMENT SAFE LOADER
+// ===============================
 const ELEMENTS = {
-  H:  {z:1, mass:1.008, config:"1s¹", valence:1, en:2.20, radius:53, ox:"+1"},
-  He: {z:2, mass:4.0026, config:"1s²", valence:2, en:0, radius:31, ox:"0"},
-  C:  {z:6, mass:12.011, config:"1s² 2s² 2p²", valence:4, en:2.55, radius:77, ox:"±4"},
-  N:  {z:7, mass:14.007, config:"1s² 2s² 2p³", valence:5, en:3.04, radius:75, ox:"-3,+3,+5"},
-  O:  {z:8, mass:15.999, config:"1s² 2s² 2p⁴", valence:6, en:3.44, radius:73, ox:"-2"},
-  F:  {z:9, mass:18.998, config:"1s² 2s² 2p⁵", valence:7, en:3.98, radius:71, ox:"-1"},
-  Ne: {z:10, mass:20.180, config:"1s² 2s² 2p⁶", valence:8, en:0, radius:69, ox:"0"}
+  H: { Z: 1, mass: 1.008, config: "1s¹", valence: 1, en: 2.2, radius: 53, ox: "+1", block: "s" },
+  C: { Z: 6, mass: 12.01, config: "1s² 2s² 2p²", valence: 4, en: 2.55, radius: 77, ox: "±4", block: "p" },
+  N: { Z: 7, mass: 14.01, config: "1s² 2s² 2p³", valence: 5, en: 3.04, radius: 75, ox: "-3,+5", block: "p" },
+  O: { Z: 8, mass: 16.00, config: "1s² 2s² 2p⁴", valence: 6, en: 3.44, radius: 73, ox: "-2", block: "p" },
+  F: { Z: 9, mass: 18.99, config: "1s² 2s² 2p⁵", valence: 7, en: 3.98, radius: 71, ox: "-1", block: "p" },
+  Ne:{ Z:10, mass:20.18, config:"1s² 2s² 2p⁶", valence:8, en:0, radius:69, ox:"0", block:"p"}
 };
 
-// =============================
-// LOAD ELEMENT
-// =============================
-function loadElement() {
-  const symbol = document.getElementById("element-select").value;
-  const el = ELEMENTS[symbol];
-  if (!el) return;
-
-  document.getElementById("el-symbol").innerText = symbol;
-  document.getElementById("el-z").innerText = el.z;
-  document.getElementById("el-mass").innerText = el.mass;
-  document.getElementById("el-protons").innerText = el.z;
-  document.getElementById("el-electrons").innerText = el.z;
-  document.getElementById("el-config").innerText = el.config;
-  document.getElementById("el-valence").innerText = el.valence;
-  document.getElementById("el-en").innerText = el.en;
-  document.getElementById("el-radius").innerText = el.radius + " pm";
-  document.getElementById("el-ox").innerText = el.ox;
-
-  document.getElementById("atom-z-badge").innerText = "Z = " + el.z;
-  document.getElementById("atom-name-chip").innerText = symbol;
-
-  if (atomRenderer) atomRenderer.update(el.z);
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = val;
 }
 
-// =============================
-// THREE.JS ATOM RENDERER
-// =============================
-class AtomRenderer {
-  constructor(canvasId) {
-    this.canvas = document.getElementById(canvasId);
-    this.scene = new THREE.Scene();
+// ===============================
+// LOAD ELEMENT (FIXED FOR YOUR HTML)
+// ===============================
+function loadElement() {
+  const sel = document.getElementById("element-select");
+  if (!sel) return;
 
+  const el = ELEMENTS[sel.value];
+  if (!el) return;
+
+  setText("el-symbol", sel.value);
+  setText("el-z", el.Z);
+  setText("el-mass", el.mass);
+  setText("el-protons", el.Z);
+  setText("el-electrons", el.Z);
+  setText("el-config", el.config);
+  setText("el-valence", el.valence);
+  setText("el-en", el.en);
+  setText("el-radius", el.radius + " pm");
+  setText("el-ox", el.ox);
+
+  const chip = document.getElementById("atom-name-chip");
+  if (chip) chip.innerText = sel.value;
+
+  if (window.atomRenderer?.update) {
+    window.atomRenderer.update(el.Z);
+  }
+}
+
+// ===============================
+// THREE JS ATOM (SAFE CORE)
+// ===============================
+class AtomRenderer {
+  constructor(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas || typeof THREE === "undefined") return;
+
+    this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     this.camera.position.z = 6;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true });
-    this.renderer.setSize(400, 400);
+    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    this.renderer.setSize(350, 350);
 
-    this.electrons = [];
     this.spin = true;
 
-    this.createNucleus();
-    this.createElectrons(6);
-    this.animate();
-  }
+    this.nucleus = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xff4444 })
+    );
 
-  createNucleus() {
-    const geo = new THREE.SphereGeometry(0.6, 32, 32);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
-    this.nucleus = new THREE.Mesh(geo, mat);
     this.scene.add(this.nucleus);
+
+    this.electrons = [];
+    this.createElectrons(6);
+
+    this.animate();
   }
 
   createElectrons(n) {
@@ -84,14 +114,15 @@ class AtomRenderer {
     this.electrons = [];
 
     for (let i = 0; i < n; i++) {
-      const geo = new THREE.SphereGeometry(0.1, 16, 16);
-      const mat = new THREE.MeshBasicMaterial({ color: 0x00d4ff });
-      const mesh = new THREE.Mesh(geo, mat);
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0x00d4ff })
+      );
 
       this.electrons.push({
         mesh,
         angle: Math.random() * Math.PI * 2,
-        radius: 2 + Math.floor(i / 2)
+        r: 2 + (i % 3)
       });
 
       this.scene.add(mesh);
@@ -102,26 +133,14 @@ class AtomRenderer {
     this.createElectrons(z);
   }
 
-  toggleSpin() {
-    this.spin = !this.spin;
-  }
-
-  toggleNucleus() {
-    this.nucleus.visible = !this.nucleus.visible;
-  }
-
-  setView() {
-    this.camera.position.set(0, 0, 6);
-  }
-
   animate() {
     requestAnimationFrame(() => this.animate());
 
     if (this.spin) {
       this.electrons.forEach(e => {
         e.angle += 0.02;
-        e.mesh.position.x = Math.cos(e.angle) * e.radius;
-        e.mesh.position.y = Math.sin(e.angle) * e.radius;
+        e.mesh.position.x = Math.cos(e.angle) * e.r;
+        e.mesh.position.y = Math.sin(e.angle) * e.r;
       });
     }
 
@@ -129,103 +148,101 @@ class AtomRenderer {
   }
 }
 
-// =============================
-// ORBITAL RENDERER (simplified)
-// =============================
+// ===============================
+// ORBITAL (SAFE)
+// ===============================
 class OrbitalRenderer {
-  constructor(canvasId) {
-    this.canvas = document.getElementById(canvasId);
-    this.scene = new THREE.Scene();
+  constructor(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas || typeof THREE === "undefined") return;
 
+    this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     this.camera.position.z = 4;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true });
-    this.renderer.setSize(400, 400);
+    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    this.renderer.setSize(350, 350);
 
-    this.spin = true;
-    this.createOrbital("s");
+    this.mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1.2, 24, 24),
+      new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true })
+    );
+
+    this.scene.add(this.mesh);
+
     this.animate();
   }
 
-  createOrbital(type) {
-    this.scene.clear();
+  create(type) {
+    this.scene.remove(this.mesh);
 
-    let geo;
-    if (type === "s") geo = new THREE.SphereGeometry(1.2, 32, 32);
-    else geo = new THREE.TorusGeometry(1, 0.4, 16, 100);
+    const geo =
+      type === "s"
+        ? new THREE.SphereGeometry(1.2, 24, 24)
+        : new THREE.TorusGeometry(1, 0.4, 16, 100);
 
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x7c3aed,
-      wireframe: true
-    });
+    this.mesh = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true })
+    );
 
-    this.mesh = new THREE.Mesh(geo, mat);
     this.scene.add(this.mesh);
   }
 
-  toggleSpin() {
-    this.spin = !this.spin;
-  }
-
-  toggleNodes() {}
-
   animate() {
     requestAnimationFrame(() => this.animate());
-    if (this.spin && this.mesh) this.mesh.rotation.y += 0.01;
+    if (this.mesh) this.mesh.rotation.y += 0.01;
     this.renderer.render(this.scene, this.camera);
   }
 }
 
-// =============================
-// GLOBAL INSTANCES
-// =============================
-let atomRenderer;
-let orbitalRenderer;
+// ===============================
+// ORBITAL SELECT
+// ===============================
+function selectOrbital(type, label) {
+  document.querySelectorAll(".orbital-item")
+    .forEach(i => i.classList.remove("selected"));
 
-// init after load
+  const clicked = [...document.querySelectorAll(".orbital-item")]
+    .find(i => i.getAttribute("onclick")?.includes(type));
+
+  if (clicked) clicked.classList.add("selected");
+
+  window.orbitalRenderer?.create(type);
+
+  const chip = document.getElementById("orbital-name-chip");
+  if (chip) chip.innerText = label + " orbital";
+}
+
+// ===============================
+// BOND TAB SAFE FIX
+// ===============================
+function showBondTab(tab) {
+  document.querySelectorAll(".bond-tab-content")
+    .forEach(t => (t.style.display = "none"));
+
+  const el = document.getElementById("bond-tab-" + tab);
+  if (el) el.style.display = "block";
+
+  document.querySelectorAll(".tab")
+    .forEach(t => t.classList.remove("active"));
+
+  const active = [...document.querySelectorAll(".tab")]
+    .find(t => t.getAttribute("onclick")?.includes(tab));
+
+  if (active) active.classList.add("active");
+}
+
+// ===============================
+// INIT ON LOAD
+// ===============================
 window.addEventListener("DOMContentLoaded", () => {
-  atomRenderer = new AtomRenderer("atom-canvas");
-  orbitalRenderer = new OrbitalRenderer("orbital-canvas");
+  try {
+    window.atomRenderer = new AtomRenderer("atom-canvas");
+    window.orbitalRenderer = new OrbitalRenderer("orbital-canvas");
+  } catch (e) {
+    console.log("Init error:", e);
+  }
+
   loadElement();
 });
-
-// =============================
-// ORBITAL SELECT
-// =============================
-function selectOrbital(type, label) {
-  document.querySelectorAll(".orbital-item").forEach(i => i.classList.remove("selected"));
-  event.target.closest(".orbital-item")?.classList.add("selected");
-
-  orbitalRenderer.createOrbital(type);
-
-  document.getElementById("orbital-name-chip").innerText = label + " orbital";
-}
-
-// =============================
-// ORBITAL OPACITY
-// =============================
-function updateOrbitalOpacity(v) {
-  if (orbitalRenderer?.mesh) {
-    orbitalRenderer.mesh.material.opacity = v / 100;
-    orbitalRenderer.mesh.material.transparent = true;
-  }
-}
-
-// =============================
-// BOND TABS
-// =============================
-function showBondTab(tab) {
-  document.querySelectorAll(".bond-tab-content").forEach(t => t.style.display = "none");
-  document.getElementById("bond-tab-" + tab).style.display = "block";
-
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  event.target.classList.add("active");
-}
-
-// =============================
-// PLACEHOLDER FUNCTIONS (safe)
-// =============================
-function loadIonicLattice() {}
-function loadCovalent() {}
-function loadMetallic() {}
