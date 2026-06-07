@@ -1,4 +1,7 @@
-/////////////////////////////////////////////////////
+window.ATOM_STATE = {
+  Z: 1,
+  symbol: "H"
+};/////////////////////////////////////////////////////
 // ATOMLAB FINAL FIXED ENGINE (118 ELEMENT SUPPORT)
 /////////////////////////////////////////////////////
 
@@ -55,30 +58,28 @@ function loadElement() {
   const sel = document.getElementById("element-select");
   if (!sel) return;
 
-  // ✅ EXTRACT Z FROM STRING (THIS IS THE FIX)
+  // extract Z safely
   const match = sel.value.match(/Z=(\d+)/);
   if (!match) return;
 
   const Z = parseInt(match[1]);
+  const symbol = sel.value.match(/\((.*?)\)/)?.[1]?.split(" ")[0] || "";
 
-  const el = {
-    Z: Z,
-    mass: Math.round(Z * 2.2 * 100) / 100
-  };
+  // ✅ SINGLE SOURCE OF TRUTH
+  window.ATOM_STATE.Z = Z;
+  window.ATOM_STATE.symbol = symbol;
 
-  setText("el-z", el.Z);
-  setText("el-mass", el.mass);
-  setText("el-protons", el.Z);
-  setText("el-electrons", el.Z);
+  // UI update (ALL FROM SAME DATA)
+  setText("el-symbol", symbol);
+  setText("el-z", Z);
+  setText("el-protons", Z);
+  setText("el-electrons", Z);
 
-  // optional fallback updates
-  setText("el-symbol", sel.value.split("(")[1]?.split(")")[0] || "");
-  
-  if (window.atomRenderer?.update) {
-    window.atomRenderer.update(el.Z);
-  }
+  setText("el-mass", (Z * 2.2).toFixed(2));
+
+  // atom sync
+  window.atomRenderer?.update(Z);
 }
-
 // ===============================
 // ATOM RENDERER (FIXED + STABLE FOR 118)
 // ===============================
@@ -104,7 +105,7 @@ class AtomRenderer{
 
     this.scene.add(this.nucleus);
 
-    this.createElectrons(1);
+    this.createElectrons(window.ATOM_STATE?.Z || 1);
     this.animate();
   }
 
