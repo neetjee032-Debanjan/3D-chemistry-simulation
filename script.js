@@ -109,26 +109,49 @@ class AtomRenderer {
     this.animate();
   }
 
-  createElectrons(n) {
-    this.electrons.forEach(e => this.scene.remove(e.mesh));
-    this.electrons = [];
+  createElectrons(Z) {
 
-    for (let i = 0; i < n; i++) {
-      const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 12, 12),
-        new THREE.MeshBasicMaterial({ color: 0x00d4ff })
-      );
+this.electrons.forEach(e => this.scene.remove(e.mesh));
+this.electrons = [];
 
-      this.electrons.push({
-        mesh,
-        angle: Math.random() * Math.PI * 2,
-        r: 2 + (i % 3)
-      });
+// REAL SHELL CAPACITY (works for ALL elements up to 118)
+const shells = [2, 8, 18, 32, 50, 72];
 
-      this.scene.add(mesh);
-    }
-  }
+let remaining = Z;
+let baseRadius = 1.5;
 
+for (let s = 0; s < shells.length; s++) {
+
+if (remaining <= 0) break;
+
+let count = Math.min(shells[s], remaining);
+
+// FIXED ANGLE DISTRIBUTION (no randomness = stable visuals)
+for (let i = 0; i < count; i++) {
+
+let angle = (i / count) * Math.PI * 2;
+
+let mesh = new THREE.Mesh(
+new THREE.SphereGeometry(0.1, 12, 12),
+new THREE.MeshBasicMaterial({ color: 0x00d4ff })
+);
+
+// each shell has fixed radius spacing
+let radius = baseRadius + s * 1.3;
+
+this.electrons.push({
+mesh: mesh,
+angle: angle,
+radius: radius,
+speed: 0.015 + s * 0.003
+});
+
+this.scene.add(mesh);
+}
+
+remaining -= count;
+}
+}
   update(z) {
     this.createElectrons(z);
   }
