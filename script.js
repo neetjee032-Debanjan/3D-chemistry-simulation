@@ -95,40 +95,117 @@ class AtomRenderer {
     const canvas = document.getElementById(id);
     if (!canvas || typeof THREE === "undefined") return;
 
+    // ======================
+    // SCENE SETUP
+    // ======================
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    this.camera.position.z = 6;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    this.camera.position.z = 8;
+
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true
+    });
+
     this.renderer.setSize(350, 350);
 
-    this.electrons = [];
+    // ======================
+    // ROTATION CONTROLS (CUSTOM DRAG)
+    // ======================
+    this.isDragging = false;
+    this.prevX = 0;
+    this.prevY = 0;
+    this.rotationX = 0;
+    this.rotationY = 0;
 
+    canvas.addEventListener("mousedown", (e) => {
+      this.isDragging = true;
+      this.prevX = e.clientX;
+      this.prevY = e.clientY;
+    });
+
+    window.addEventListener("mouseup", () => {
+      this.isDragging = false;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!this.isDragging) return;
+
+      const dx = e.clientX - this.prevX;
+      const dy = e.clientY - this.prevY;
+
+      this.rotationY += dx * 0.01;
+      this.rotationX += dy * 0.01;
+
+      this.prevX = e.clientX;
+      this.prevY = e.clientY;
+    });
+
+    // ======================
+    // NUCLEUS
+    // ======================
     this.nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 16, 16),
+      new THREE.SphereGeometry(0.5, 24, 24),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
 
     this.scene.add(this.nucleus);
 
+    // ======================
+    // ELECTRONS + ORBITS
+    // ======================
+    this.electrons = [];
+    this.orbits = [];
+
     this.createElectrons(1);
+
     this.animate();
   }
 
+  // ======================
+  // CREATE ELECTRONS + ORBITS
+  // ======================
   createElectrons(Z) {
+    // clear old
     this.electrons.forEach(e => this.scene.remove(e.mesh));
+    this.orbits.forEach(o => this.scene.remove(o));
     this.electrons = [];
+    this.orbits = [];
 
     const shells = [2, 8, 18, 32, 50, 72, 98];
 
     let remaining = Z;
-    let baseR = 1.5;
+    let baseRadius = 1.5;
 
     for (let s = 0; s < shells.length; s++) {
       if (remaining <= 0) break;
 
       const count = Math.min(shells[s], remaining);
 
+      const radius = baseRadius + s * 1.4;
+
+      // ======================
+      // ORBIT RING (VISIBLE)
+      // ======================
+      const orbit = new THREE.Mesh(
+        new THREE.RingGeometry(radius - 0.01, radius + 0.01, 64),
+        new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.25
+        })
+      );
+
+      orbit.rotation.x = Math.PI / 2;
+      this.scene.add(orbit);
+      this.orbits.push(orbit);
+
+      // ======================
+      // ELECTRONS
+      // ======================
       for (let i = 0; i < count; i++) {
         const angle = (i / count) * Math.PI * 2;
 
@@ -136,8 +213,6 @@ class AtomRenderer {
           new THREE.SphereGeometry(0.1, 12, 12),
           new THREE.MeshBasicMaterial({ color: 0x00d4ff })
         );
-
-        const radius = baseR + s * 1.4;
 
         this.electrons.push({
           mesh,
@@ -157,9 +232,17 @@ class AtomRenderer {
     this.createElectrons(Z);
   }
 
+  // ======================
+  // ANIMATION LOOP
+  // ======================
   animate() {
     requestAnimationFrame(() => this.animate());
 
+    // rotate whole atom (user control)
+    this.scene.rotation.x = this.rotationX;
+    this.scene.rotation.y = this.rotationY;
+
+    // electron movement
     this.electrons.forEach(e => {
       e.angle += e.speed;
       e.mesh.position.x = Math.cos(e.angle) * e.radius;
@@ -169,7 +252,6 @@ class AtomRenderer {
     this.renderer.render(this.scene, this.camera);
   }
 }
-
 // ===============================
 // NAVIGATION (SAFE)
 // ===============================
