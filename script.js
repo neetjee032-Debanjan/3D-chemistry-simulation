@@ -108,16 +108,45 @@ class AtomRenderer {
 
     this.animate();
   }
+createElectrons(Z) {
+  this.electrons.forEach(e => this.scene.remove(e.mesh));
+  this.electrons = [];
 
-  createElectrons(n) {
-    this.electrons.forEach(e => this.scene.remove(e.mesh));
-    this.electrons = [];
+  // electron shell capacities
+  const shells = [2, 8, 18, 32];
 
-    for (let i = 0; i < n; i++) {
+  let remaining = Z;
+  let shellIndex = 0;
+  let radiusBase = 1.5;
+
+  while (remaining > 0) {
+    const capacity = shells[shellIndex] || 32;
+    const count = Math.min(remaining, capacity);
+
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+
       const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(0.1, 12, 12),
         new THREE.MeshBasicMaterial({ color: 0x00d4ff })
       );
+
+      const radius = radiusBase + shellIndex * 1.2;
+
+      this.electrons.push({
+        mesh,
+        angle,
+        radius,
+        speed: 0.02 + shellIndex * 0.005
+      });
+
+      this.scene.add(mesh);
+    }
+
+    remaining -= count;
+    shellIndex++;
+  }
+}
 
       this.electrons.push({
         mesh,
