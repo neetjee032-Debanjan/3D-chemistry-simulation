@@ -162,11 +162,20 @@ createElectrons(Z) {
     this.createElectrons(z);
   }
 
-this.electrons.forEach(e => {
-  e.angle += e.speed;
-  e.mesh.position.x = Math.cos(e.angle) * e.radius;
-  e.mesh.position.y = Math.sin(e.angle) * e.radius;
-});
+  animate() {
+    requestAnimationFrame(() => this.animate());
+
+    if (this.spin) {
+      this.electrons.forEach(e => {
+        e.angle += 0.02;
+        e.mesh.position.x = Math.cos(e.angle) * e.r;
+        e.mesh.position.y = Math.sin(e.angle) * e.r;
+      });
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  }
+}
 
 // ===============================
 // ORBITAL (SAFE)
@@ -193,37 +202,21 @@ class OrbitalRenderer {
     this.animate();
   }
 
-create(type) {
-  this.scene.remove(this.mesh);
+  create(type) {
+    this.scene.remove(this.mesh);
 
-  let geo;
+    const geo =
+      type === "s"
+        ? new THREE.SphereGeometry(1.2, 24, 24)
+        : new THREE.TorusGeometry(1, 0.4, 16, 100);
 
-  if (type === "s") {
-    geo = new THREE.SphereGeometry(1.2, 32, 32);
+    this.mesh = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true })
+    );
+
+    this.scene.add(this.mesh);
   }
-
-  if (type === "p") {
-    geo = new THREE.CapsuleGeometry(0.4, 2.2, 16, 32);
-  }
-
-  if (type === "d") {
-    geo = new THREE.TorusKnotGeometry(0.8, 0.25, 100, 16);
-  }
-
-  if (type === "f") {
-    geo = new THREE.IcosahedronGeometry(1.2, 1);
-  }
-
-  this.mesh = new THREE.Mesh(
-    geo,
-    new THREE.MeshBasicMaterial({
-      color: 0x7c3aed,
-      wireframe: true
-    })
-  );
-
-  this.scene.add(this.mesh);
-}
 
   animate() {
     requestAnimationFrame(() => this.animate());
