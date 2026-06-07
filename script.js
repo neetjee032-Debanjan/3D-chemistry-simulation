@@ -1,14 +1,14 @@
 /////////////////////////////////////////////////////
-// ATOMLAB SAFE FULL ENGINE (NAVIGATION PROTECTED)
+// ATOMLAB — FULL SAFE ENGINE (FINAL STABLE BUILD)
 /////////////////////////////////////////////////////
 
 // ===============================
-// GLOBAL STATE
+// GLOBAL SAFE STATE
 // ===============================
-window.STATE = { Z: 1, symbol: "H" };
+window.STATE = window.STATE || { Z: 1, symbol: "H" };
 
 // ===============================
-// 118 ELEMENT LIST
+// ELEMENTS (118)
 // ===============================
 const ELEMENTS = [
 "H","He","Li","Be","B","C","N","O","F","Ne",
@@ -25,7 +25,7 @@ const ELEMENTS = [
 ];
 
 // ===============================
-// SAFE TEXT UPDATE
+// SAFE TEXT HELPER
 // ===============================
 function setText(id, val) {
   const el = document.getElementById(id);
@@ -33,7 +33,34 @@ function setText(id, val) {
 }
 
 // ===============================
-// NAVIGATION (RESTORED - DO NOT BREAK)
+// LOAD ELEMENT (ULTRA SAFE)
+// ===============================
+function loadElement() {
+  const sel = document.getElementById("element-select");
+  if (!sel || !window.atomRenderer) return;
+
+  let Z = parseInt(sel.value);
+
+  // safety
+  if (isNaN(Z) || Z < 1 || Z > 118) Z = 1;
+
+  const symbol = ELEMENTS[Z - 1];
+
+  window.STATE.Z = Z;
+  window.STATE.symbol = symbol;
+
+  // UI sync
+  setText("el-symbol", symbol);
+  setText("el-z", Z);
+  setText("el-protons", Z);
+  setText("el-electrons", Z);
+  setText("el-mass", (Z * 2.1).toFixed(2));
+
+  window.atomRenderer.update(Z);
+}
+
+// ===============================
+// NAVIGATION (SAFE - DOES NOT BREAK ANY TAB)
 // ===============================
 window.showPage = function (id) {
   const pages = document.querySelectorAll("div[id^='page-']");
@@ -42,36 +69,14 @@ window.showPage = function (id) {
   const target = document.getElementById("page-" + id);
   if (target) target.style.display = "flex";
 
-  // re-init atomic ONLY when needed
-  if (id === "atomic" && window.atomRenderer) {
-    window.atomRenderer.update(window.STATE.Z);
+  // re-render atom when returning
+  if (id === "atomic") {
+    window.atomRenderer?.update(window.STATE.Z);
   }
 };
 
 // ===============================
-// LOAD ELEMENT
-// ===============================
-function loadElement() {
-  const sel = document.getElementById("element-select");
-  if (!sel) return;
-
-  const Z = parseInt(sel.value);
-  const symbol = ELEMENTS[Z - 1];
-
-  window.STATE.Z = Z;
-  window.STATE.symbol = symbol;
-
-  setText("el-symbol", symbol);
-  setText("el-z", Z);
-  setText("el-protons", Z);
-  setText("el-electrons", Z);
-  setText("el-mass", (Z * 2.1).toFixed(2));
-
-  window.atomRenderer?.update(Z);
-}
-
-// ===============================
-// ATOM RENDERER (STABLE 3D SYSTEM)
+// ⭐ ATOM RENDERER (TRUE 3D + STABLE)
 // ===============================
 class AtomRenderer {
   constructor(id) {
@@ -91,14 +96,12 @@ class AtomRenderer {
 
     this.renderer.setSize(350, 350);
 
-    // rotation
+    // rotation control
     this.rx = 0;
     this.ry = 0;
     this.drag = false;
-    this.px = 0;
-    this.py = 0;
 
-    canvas.addEventListener("mousedown", (e) => {
+    canvas.addEventListener("mousedown", e => {
       this.drag = true;
       this.px = e.clientX;
       this.py = e.clientY;
@@ -106,10 +109,12 @@ class AtomRenderer {
 
     window.addEventListener("mouseup", () => this.drag = false);
 
-    window.addEventListener("mousemove", (e) => {
+    window.addEventListener("mousemove", e => {
       if (!this.drag) return;
+
       this.ry += (e.clientX - this.px) * 0.01;
       this.rx += (e.clientY - this.py) * 0.01;
+
       this.px = e.clientX;
       this.py = e.clientY;
     });
@@ -119,29 +124,35 @@ class AtomRenderer {
       new THREE.SphereGeometry(0.7, 24, 24),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
-
     this.scene.add(this.nucleus);
 
     this.electrons = [];
-    this.shells = [];
+    this.rings = [];
 
-    this.createElectrons(1);
+    this.update(1);
     this.animate();
   }
 
-  // shell structure
-  getShells() {
+  // shell model
+  shells() {
     return [2, 8, 18, 32, 50, 72, 98];
   }
 
-  createElectrons(Z) {
+  // ===============================
+  // BUILD ATOM
+  // ===============================
+  update(Z) {
+    Z = Number(Z);
+    if (!Z || isNaN(Z)) Z = 1;
+
+    // clear old
     this.electrons.forEach(e => this.scene.remove(e));
-    this.shells.forEach(s => this.scene.remove(s));
+    this.rings.forEach(r => this.scene.remove(r));
 
     this.electrons = [];
-    this.shells = [];
+    this.rings = [];
 
-    const shells = this.getShells();
+    const shells = this.shells();
     let remaining = Z;
     let base = 2;
 
@@ -151,13 +162,13 @@ class AtomRenderer {
       const count = Math.min(shells[s], remaining);
       const radius = base + s * 1.6;
 
-      // orbit ring (visible)
+      // ORBIT RING (VISIBLE 3D)
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(radius, 0.01, 10, 120),
         new THREE.MeshBasicMaterial({
           color: 0xffffff,
-          opacity: 0.2,
-          transparent: true
+          transparent: true,
+          opacity: 0.25
         })
       );
 
@@ -165,34 +176,32 @@ class AtomRenderer {
       ring.rotation.y = Math.random() * Math.PI;
 
       this.scene.add(ring);
-      this.shells.push(ring);
+      this.rings.push(ring);
 
+      // ELECTRONS
       for (let i = 0; i < count; i++) {
-        const electron = new THREE.Mesh(
+        const e = new THREE.Mesh(
           new THREE.SphereGeometry(0.12, 12, 12),
           new THREE.MeshBasicMaterial({ color: 0x00d4ff })
         );
 
-        electron.userData = {
+        e.userData = {
           angle: (i / count) * Math.PI * 2,
-          radius: radius,
-          speed: 0.02 + s * 0.002,
-          tiltX: ring.rotation.x,
-          tiltY: ring.rotation.y
+          radius,
+          speed: 0.02 + s * 0.002
         };
 
-        this.scene.add(electron);
-        this.electrons.push(electron);
+        this.scene.add(e);
+        this.electrons.push(e);
       }
 
       remaining -= count;
     }
   }
 
-  update(Z) {
-    this.createElectrons(Z);
-  }
-
+  // ===============================
+  // ANIMATION LOOP (REAL 3D MOTION)
+  // ===============================
   animate() {
     requestAnimationFrame(() => this.animate());
 
@@ -202,9 +211,11 @@ class AtomRenderer {
     for (let e of this.electrons) {
       e.userData.angle += e.userData.speed;
 
-      e.position.x = Math.cos(e.userData.angle) * e.userData.radius;
-      e.position.y = Math.sin(e.userData.angle) * e.userData.radius;
-      e.position.z = Math.sin(e.userData.angle * 0.7) * (e.userData.radius * 0.35);
+      const r = e.userData.radius;
+
+      e.position.x = Math.cos(e.userData.angle) * r;
+      e.position.y = Math.sin(e.userData.angle) * r;
+      e.position.z = Math.sin(e.userData.angle * 0.7) * (r * 0.35);
     }
 
     this.renderer.render(this.scene, this.camera);
