@@ -1,46 +1,67 @@
-// Scene setup
+// Scene
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+// Camera
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Atom nucleus
+// Controls
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+// Nucleus (3D sphere)
 const nucleusGeometry = new THREE.SphereGeometry(1, 32, 32);
-const nucleusMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
+const nucleusMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 const nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
 scene.add(nucleus);
 
-// Electron
-const electronGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-const electronMaterial = new THREE.MeshBasicMaterial({color: 0x00ffff});
-const electron = new THREE.Mesh(electronGeometry, electronMaterial);
-scene.add(electron);
+// Electrons
+const electrons = [];
+const electronCount = 3;
 
-// Orbit radius
-let angle = 0;
+for (let i = 0; i < electronCount; i++) {
+  const geometry = new THREE.SphereGeometry(0.2, 16, 16);
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+  const electron = new THREE.Mesh(geometry, material);
+
+  electron.angle = Math.random() * Math.PI * 2;
+  electron.radius = 2 + i * 0.5;
+
+  scene.add(electron);
+  electrons.push(electron);
+}
 
 // Camera position
-camera.position.z = 5;
+camera.position.z = 6;
 
-// Animation loop
+// Animation
 function animate() {
   requestAnimationFrame(animate);
 
-  angle += 0.02;
+  electrons.forEach((e, index) => {
+    e.angle += 0.02 + index * 0.002;
 
-  electron.position.x = Math.cos(angle) * 2;
-  electron.position.z = Math.sin(angle) * 2;
+    e.position.x = Math.cos(e.angle) * e.radius;
+    e.position.z = Math.sin(e.angle) * e.radius;
+  });
 
+  controls.update();
   renderer.render(scene, camera);
 }
 
 animate();
 
-// Resize handling
+// Resize fix
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
