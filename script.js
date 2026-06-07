@@ -14,85 +14,62 @@ document.body.appendChild(renderer.domElement);
 
 camera.position.z = 8;
 
-// store objects so we can reset
-let objects = [];
+// store ONLY electrons for animation
+let electrons = [];
 
-// clear scene function
+// clear scene safely
 function clearScene() {
-  objects.forEach(obj => scene.remove(obj));
-  objects = [];
+  electrons.forEach(e => scene.remove(e));
+  electrons = [];
 }
 
 // create atom
-function createAtom(x, color, electrons = 1) {
-  const group = new THREE.Group();
-
+function createAtom(x, color, electronCount) {
   const nucleus = new THREE.Mesh(
     new THREE.SphereGeometry(0.6, 32, 32),
     new THREE.MeshBasicMaterial({ color })
   );
 
-  group.add(nucleus);
+  nucleus.position.x = x;
+  scene.add(nucleus);
 
-  for (let i = 0; i < electrons; i++) {
+  for (let i = 0; i < electronCount; i++) {
     const e = new THREE.Mesh(
       new THREE.SphereGeometry(0.12, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0x00ffff })
     );
 
-    e.angle = (Math.PI * 2 * i) / electrons;
+    e.angle = (Math.PI * 2 * i) / electronCount;
     e.radius = 1.5;
 
-    // ⭐ IMPORTANT FIX: set initial visible position
-    e.position.x = Math.cos(e.angle) * e.radius;
-    e.position.z = Math.sin(e.angle) * e.radius;
+    e.baseX = x;
 
-    e.tick = () => {
-      e.angle += 0.03;
-      e.position.x = Math.cos(e.angle) * e.radius;
-      e.position.z = Math.sin(e.angle) * e.radius;
-    };
-
-    group.add(e);
-    objects.push(e);
+    scene.add(e);
+    electrons.push(e);
   }
-
-  group.position.x = x;
-
-  scene.add(group);
-  objects.push(group);
-
-  return group;
 }
+
+// input system
 function loadModel() {
   const input = document.getElementById("input").value.toLowerCase();
 
   clearScene();
 
-  // HYDROGEN
   if (input === "h" || input === "hydrogen") {
     createAtom(0, 0xff4444, 1);
   }
 
-  // OXYGEN
   else if (input === "o" || input === "oxygen") {
-  createAtom(0, 0xff4444, 2);
-}
+    createAtom(0, 0xff4444, 2);
+  }
 
-  // H2O (water)
   else if (input === "h2o") {
     createAtom(-2, 0xff4444, 1);
     createAtom(2, 0xff4444, 1);
   }
 
-  // CO2
-  else if (input === "co2") {
-    createAtom(-3, 0xff4444, 2);
-    createAtom(3, 0xff4444, 2);
-  }
-
   else {
-    alert("Model not found. Try H, O, H2O, CO2");
+    alert("Try: H, O, H2O");
   }
 }
 
@@ -100,8 +77,11 @@ function loadModel() {
 function animate() {
   requestAnimationFrame(animate);
 
-  objects.forEach(obj => {
-    if (obj.tick) obj.tick();
+  electrons.forEach((e, i) => {
+    e.angle += 0.02;
+
+    e.position.x = e.baseX + Math.cos(e.angle) * e.radius;
+    e.position.z = Math.sin(e.angle) * e.radius;
   });
 
   renderer.render(scene, camera);
@@ -109,7 +89,6 @@ function animate() {
 
 animate();
 
-// resize
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
