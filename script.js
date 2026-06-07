@@ -15,60 +15,81 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000);
 document.body.appendChild(renderer.domElement);
 
-// Nucleus
-const nucleus = new THREE.Mesh(
-  new THREE.SphereGeometry(1, 32, 32),
-  new THREE.MeshBasicMaterial({ color: 0xff4444 })
-);
-scene.add(nucleus);
+// Atoms (2 Hydrogen atoms)
+function createHydrogen(x) {
+  const group = new THREE.Group();
 
-// Shell radii
-const shells = [2, 3.5];
+  // nucleus
+  const nucleus = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xff4444 })
+  );
+  group.add(nucleus);
 
-// Electron config (Bohr model style)
-const electrons = [];
-
-// Shell 1 (max 2 electrons)
-for (let i = 0; i < 2; i++) {
-  const e = new THREE.Mesh(
-    new THREE.SphereGeometry(0.15, 16, 16),
+  // electron
+  const electron = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0x00ffff })
   );
 
-  e.angle = Math.random() * Math.PI * 2;
-  e.radius = shells[0];
+  electron.angle = Math.random() * Math.PI * 2;
+  electron.radius = 1.2;
 
-  scene.add(e);
-  electrons.push(e);
+  group.add(electron);
+
+  group.electron = electron;
+  group.position.x = x;
+
+  return group;
 }
 
-// Shell 2 (max 2 for demo, can extend to 8 later)
-for (let i = 0; i < 2; i++) {
-  const e = new THREE.Mesh(
-    new THREE.SphereGeometry(0.15, 16, 16),
-    new THREE.MeshBasicMaterial({ color: 0x00ff88 })
-  );
+// Create two hydrogen atoms
+const atom1 = createHydrogen(-4);
+const atom2 = createHydrogen(4);
 
-  e.angle = Math.random() * Math.PI * 2;
-  e.radius = shells[1];
+scene.add(atom1);
+scene.add(atom2);
 
-  scene.add(e);
-  electrons.push(e);
-}
+// Bond line (covalent bond)
+const bondMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+const bondGeometry = new THREE.BufferGeometry();
+const bondPoints = [
+  new THREE.Vector3(0, 0, 0),
+  new THREE.Vector3(0, 0, 0)
+];
+bondGeometry.setFromPoints(bondPoints);
+const bond = new THREE.Line(bondGeometry, bondMaterial);
+scene.add(bond);
 
 // Camera position
-camera.position.z = 7;
+camera.position.z = 8;
 
-// Animation
+// Animation state
+let t = 0;
+
+// Animate
 function animate() {
   requestAnimationFrame(animate);
 
-  electrons.forEach((e, i) => {
-    e.angle += 0.02 + i * 0.002;
+  t += 0.01;
 
-    e.position.x = Math.cos(e.angle) * e.radius;
-    e.position.z = Math.sin(e.angle) * e.radius;
+  // Move atoms towards each other
+  atom1.position.x += 0.02;
+  atom2.position.x -= 0.02;
+
+  // Rotate electrons
+  [atom1, atom2].forEach(atom => {
+    atom.electron.angle += 0.05;
+
+    atom.electron.position.x = Math.cos(atom.electron.angle) * atom.electron.radius;
+    atom.electron.position.z = Math.sin(atom.electron.angle) * atom.electron.radius;
   });
+
+  // Update bond line between atoms
+  bond.geometry.setFromPoints([
+    atom1.position,
+    atom2.position
+  ]);
 
   renderer.render(scene, camera);
 }
