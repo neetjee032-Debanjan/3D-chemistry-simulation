@@ -1,96 +1,65 @@
-const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+// ===== MODEL DATABASE =====
+const MODELS = {
+  h: {
+    atoms: [{pos:[0,0,0], color:0xff4444, r:0.5}]
+  },
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x000000);
-document.body.appendChild(renderer.domElement);
+  o: {
+    atoms: [
+      {pos:[0,0,0], color:0xff4444, r:0.6},
+      {pos:[1.2,0.8,0], color:0x00d4ff, r:0.2},
+      {pos:[-1.2,-0.8,0], color:0x00d4ff, r:0.2}
+    ]
+  },
 
-camera.position.z = 8;
+  h2: {
+    atoms: [
+      {pos:[-1.5,0,0], color:0xff4444, r:0.5},
+      {pos:[1.5,0,0], color:0xff4444, r:0.5}
+    ],
+    bonds: [[0,1]]
+  },
 
-// store ONLY electrons for animation
-let electrons = [];
-
-// clear scene safely
-function clearScene() {
-  electrons.forEach(e => scene.remove(e));
-  electrons = [];
-}
-
-// create atom
-function createAtom(x, color, electronCount) {
-  const nucleus = new THREE.Mesh(
-    new THREE.SphereGeometry(0.6, 32, 32),
-    new THREE.MeshBasicMaterial({ color })
-  );
-
-  nucleus.position.x = x;
-  scene.add(nucleus);
-
-  for (let i = 0; i < electronCount; i++) {
-    const e = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0x00ffff })
-    );
-
-    e.angle = (Math.PI * 2 * i) / electronCount;
-    e.radius = 1.5;
-
-    e.baseX = x;
-
-    scene.add(e);
-    electrons.push(e);
+  h2o: {
+    atoms: [
+      {pos:[0,0,0], color:0xff4444, r:0.6},
+      {pos:[1.2,0.8,0], color:0xffffff, r:0.3},
+      {pos:[-1.2,0.8,0], color:0xffffff, r:0.3}
+    ],
+    bonds: [[0,1],[0,2]]
   }
-}
+};
 
-// input system
+// ===== MAIN FUNCTION CALLED BY HTML =====
 function loadModel() {
-  const input = document.getElementById("input").value.toLowerCase();
+  const input = document.getElementById("input").value.trim().toLowerCase();
 
-  clearScene();
+  let model = MODELS[input];
 
-  if (input === "h" || input === "hydrogen") {
-    createAtom(0, 0xff4444, 1);
+  if (!model) {
+    alert("Model not found. Try: H, O, H2, H2O");
+    return;
   }
 
-  else if (input === "o" || input === "oxygen") {
-    createAtom(0, 0xff4444, 2);
+  // Use existing renderer system (IMPORTANT)
+  if (window.atomRenderer) {
+    atomRenderer.clear?.();
+    atomRenderer.buildMol(model.atoms, model.bonds || []);
   }
 
-  else if (input === "h2o") {
-    createAtom(-2, 0xff4444, 1);
-    createAtom(2, 0xff4444, 1);
+  if (window.moleculeRenderer) {
+    moleculeRenderer.clear?.();
+    moleculeRenderer.buildMol(model.atoms, model.bonds || []);
   }
 
-  else {
-    alert("Try: H, O, H2O");
+  if (window.orbitalRenderer) {
+    orbitalRenderer.clear?.();
+    orbitalRenderer.buildMol?.(model.atoms, model.bonds || []);
   }
 }
 
-// animation loop
-function animate() {
-  requestAnimationFrame(animate);
-
-  electrons.forEach((e, i) => {
-    e.angle += 0.02;
-
-    e.position.x = e.baseX + Math.cos(e.angle) * e.radius;
-    e.position.z = Math.sin(e.angle) * e.radius;
-  });
-
-  renderer.render(scene, camera);
-}
-
-animate();
-
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+// Optional: auto-run on Enter key
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") loadModel();
 });
