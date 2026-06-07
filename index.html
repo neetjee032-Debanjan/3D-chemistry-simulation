@@ -1,30 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>3D Atomic Structure Learning</title>
+  <title>3D Atomic Simulator</title>
   <style>
-    body { margin: 0; overflow: hidden; font-family: Arial; }
+    body { margin: 0; overflow: hidden; background: black; }
     #info {
       position: absolute;
       top: 10px;
       left: 10px;
       color: white;
-      background: rgba(0,0,0,0.6);
+      font-family: Arial;
+      background: rgba(0,0,0,0.5);
       padding: 10px;
       border-radius: 10px;
-      max-width: 300px;
     }
   </style>
 </head>
 <body>
 
 <div id="info">
-  <h3>3D Atomic Model</h3>
-  Drag mouse to rotate <br>
-  Scroll to zoom
+  <h3>3D Atomic Simulator</h3>
+  Drag mouse = rotate <br>
+  Scroll = zoom
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 <script src="script.js"></script>
 
 </body>
