@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////
-// ATOMLAB MASTER FIX (FULL STABLE + NAVIGATION SAFE)
+// ATOMLAB MASTER SCIENTIFIC ENGINE (FINAL BUILD)
 /////////////////////////////////////////////////////
 
 // ===============================
@@ -12,7 +12,7 @@ window.STATE = {
 };
 
 // ===============================
-// ELEMENTS
+// ELEMENT SYMBOLS (1–118)
 // ===============================
 const ELEMENT_SYMBOLS = [
 "H","He","Li","Be","B","C","N","O","F","Ne",
@@ -29,53 +29,98 @@ const ELEMENT_SYMBOLS = [
 ];
 
 // ===============================
-// ELECTRON CONFIG
+// ELECTRON CONFIGURATION (AUFBAU)
 // ===============================
-const ORBITALS=[
-{n:"1s",m:2},{n:"2s",m:2},{n:"2p",m:6},{n:"3s",m:2},{n:"3p",m:6},
-{n:"4s",m:2},{n:"3d",m:10},{n:"4p",m:6},{n:"5s",m:2},{n:"4d",m:10},
-{n:"5p",m:6},{n:"6s",m:2},{n:"4f",m:14},{n:"5d",m:10},{n:"6p",m:6},
-{n:"7s",m:2},{n:"5f",m:14},{n:"6d",m:10},{n:"7p",m:6}
+const ORBITALS = [
+{ name:"1s", max:2 },
+{ name:"2s", max:2 },
+{ name:"2p", max:6 },
+{ name:"3s", max:2 },
+{ name:"3p", max:6 },
+{ name:"4s", max:2 },
+{ name:"3d", max:10 },
+{ name:"4p", max:6 },
+{ name:"5s", max:2 },
+{ name:"4d", max:10 },
+{ name:"5p", max:6 },
+{ name:"6s", max:2 },
+{ name:"4f", max:14 },
+{ name:"5d", max:10 },
+{ name:"6p", max:6 },
+{ name:"7s", max:2 },
+{ name:"5f", max:14 },
+{ name:"6d", max:10 },
+{ name:"7p", max:6 }
 ];
 
-function config(Z){
-  let r=Z,c=[];
+function getElectronConfig(Z){
+  let remaining = Z;
+  let config = [];
+
   for(let o of ORBITALS){
-    if(r<=0) break;
-    let f=Math.min(o.m,r);
-    c.push(`${o.n}^${f}`);
-    r-=f;
+    if(remaining <= 0) break;
+    let fill = Math.min(o.max, remaining);
+    config.push(`${o.name}^${fill}`);
+    remaining -= fill;
   }
-  return c.join(" ");
+
+  return config.join(" ");
+}
+
+function getValence(config){
+  let parts = config.split(" ");
+  return parseInt(parts[parts.length-1].split("^")[1]) || 0;
 }
 
 // ===============================
-// SAFE UI
+// VSEPR + BONDING
 // ===============================
-function setText(id,v){
+function getVSEPR(v){
+  if(v<=2) return "Linear";
+  if(v===3) return "Trigonal Planar";
+  if(v===4) return "Tetrahedral";
+  if(v===5) return "Trigonal Bipyramidal";
+  if(v===6) return "Octahedral";
+  return "Complex";
+}
+
+function getBond(v){
+  if(v<=1) return "Noble / Non-reactive";
+  if(v<=3) return "Weak Covalent";
+  if(v<=5) return "Strong Covalent";
+  if(v<=7) return "Reactive Covalent";
+  return "Stable";
+}
+
+// ===============================
+// DROPDOWN GENERATOR (FIXED)
+// ===============================
+function initDropdown(){
+  const sel=document.getElementById("element-select");
+  if(!sel) return;
+
+  sel.innerHTML="";
+
+  for(let i=1;i<=118;i++){
+    const opt=document.createElement("option");
+    opt.value=i;
+    opt.textContent=`${ELEMENT_SYMBOLS[i-1]} (Z=${i})`;
+    sel.appendChild(opt);
+  }
+
+  sel.value=6;
+}
+
+// ===============================
+// SAFE UI SETTER
+// ===============================
+function setText(id,val){
   const el=document.getElementById(id);
-  if(el) el.innerText=v;
+  if(el) el.innerText=val;
 }
 
 // ===============================
-// PAGE NAVIGATION (RESTORED)
-// ===============================
-function showPage(id){
-  document.querySelectorAll("[id^='page-']")
-    .forEach(p=>p.style.display="none");
-
-  const t=document.getElementById("page-"+id);
-  if(t) t.style.display="flex";
-
-  document.querySelectorAll(".nav-btn")
-    .forEach(b=>{
-      b.classList.remove("active");
-      if(b.getAttribute("onclick")?.includes(id)) b.classList.add("active");
-    });
-}
-
-// ===============================
-// ELEMENT LOAD
+// MAIN ELEMENT ENGINE (FULL SYNC FIX)
 // ===============================
 function loadElement(){
   const sel=document.getElementById("element-select");
@@ -84,182 +129,191 @@ function loadElement(){
   const Z=parseInt(sel.value);
   const symbol=ELEMENT_SYMBOLS[Z-1];
 
-  const cfg=config(Z);
+  const config=getElectronConfig(Z);
+  const valence=getValence(config);
 
-  window.STATE={Z,symbol,config:cfg};
+  window.STATE={Z,symbol,config};
 
   setText("el-symbol",symbol);
   setText("el-z",Z);
   setText("el-protons",Z);
   setText("el-electrons",Z);
-  setText("el-mass",(Z*2.2).toFixed(2));
-  setText("el-config",cfg);
+  setText("el-mass",(Z*2.2).toFixed(3));
+  setText("el-config",config);
+  setText("el-valence",valence);
+  setText("el-geometry",getVSEPR(valence));
+  setText("el-bond",getBond(valence));
 
   window.atomRenderer?.update(Z);
 }
 
 // ===============================
-// ATOM ENGINE (SAFE)
+// ATOM 3D ENGINE (STABLE)
 // ===============================
 class AtomRenderer{
   constructor(id){
-    const c=document.getElementById(id);
-    if(!c||typeof THREE==="undefined") return;
+    const canvas=document.getElementById(id);
+    if(!canvas || typeof THREE==="undefined") return;
 
     this.scene=new THREE.Scene();
     this.camera=new THREE.PerspectiveCamera(75,1,0.1,1000);
     this.camera.position.z=6;
 
-    this.r=new THREE.WebGLRenderer({canvas:c,alpha:true});
-    this.r.setSize(350,350);
+    this.renderer=new THREE.WebGLRenderer({canvas,alpha:true});
+    this.renderer.setSize(350,350);
 
-    this.e=[];
+    this.electrons=[];
 
-    this.n=new THREE.Mesh(
+    this.nucleus=new THREE.Mesh(
       new THREE.SphereGeometry(0.5,16,16),
       new THREE.MeshBasicMaterial({color:0xff4444})
     );
 
-    this.scene.add(this.n);
+    this.scene.add(this.nucleus);
 
-    this.update(1);
+    this.createElectrons(1);
     this.animate();
   }
 
-  update(Z){
-    this.e.forEach(x=>this.scene.remove(x.m));
-    this.e=[];
+  createElectrons(Z){
+    this.electrons.forEach(e=>this.scene.remove(e.mesh));
+    this.electrons=[];
 
-    const s=[2,8,18,32,50,72,98];
-    let r=Z,b=1.5;
+    const shells=[2,8,18,32,50,72,98];
 
-    for(let i=0;i<s.length;i++){
-      if(r<=0) break;
-      let c=Math.min(s[i],r);
+    let remaining=Z;
+    let base=1.5;
 
-      for(let j=0;j<c;j++){
-        let a=(j/c)*Math.PI*2;
+    for(let s=0;s<shells.length;s++){
+      if(remaining<=0) break;
 
-        let m=new THREE.Mesh(
+      let count=Math.min(shells[s],remaining);
+
+      for(let i=0;i<count;i++){
+        let angle=(i/count)*Math.PI*2;
+
+        let mesh=new THREE.Mesh(
           new THREE.SphereGeometry(0.1,12,12),
           new THREE.MeshBasicMaterial({color:0x00d4ff})
         );
 
-        let rad=b+i*1.4;
+        let radius=base+s*1.4;
 
-        this.e.push({m, a, rad, sp:0.02+i*0.002});
-        this.scene.add(m);
+        this.electrons.push({
+          mesh,
+          angle,
+          radius,
+          speed:0.02+s*0.002
+        });
+
+        this.scene.add(mesh);
       }
 
-      r-=c;
+      remaining-=count;
     }
+  }
+
+  update(Z){
+    this.createElectrons(Z);
   }
 
   animate(){
     requestAnimationFrame(()=>this.animate());
 
-    this.e.forEach(x=>{
-      x.a+=x.sp;
-      x.m.position.x=Math.cos(x.a)*x.rad;
-      x.m.position.y=Math.sin(x.a)*x.rad;
+    this.electrons.forEach(e=>{
+      e.angle+=e.speed;
+      e.mesh.position.x=Math.cos(e.angle)*e.radius;
+      e.mesh.position.y=Math.sin(e.angle)*e.radius;
     });
 
-    this.r.render(this.scene,this.camera);
+    this.renderer.render(this.scene,this.camera);
   }
 }
 
 // ===============================
-// ORBITAL SAFE (NO BREAK)
+// ORBITAL CLOUD VISUALIZATION (REAL)
 // ===============================
 class OrbitalRenderer{
   constructor(id){
-    const c=document.getElementById(id);
-    if(!c||typeof THREE==="undefined") return;
+    const canvas=document.getElementById(id);
+    if(!canvas || typeof THREE==="undefined") return;
 
     this.scene=new THREE.Scene();
     this.camera=new THREE.PerspectiveCamera(75,1,0.1,1000);
     this.camera.position.z=5;
 
-    this.r=new THREE.WebGLRenderer({canvas:c,alpha:true});
-    this.r.setSize(350,350);
+    this.renderer=new THREE.WebGLRenderer({canvas,alpha:true});
+    this.renderer.setSize(350,350);
 
-    this.group=new THREE.Group();
-    this.scene.add(this.group);
+    this.cloud=new THREE.Group();
+    this.scene.add(this.cloud);
 
     this.set("s");
     this.animate();
   }
 
-  set(t){
-    while(this.group.children.length){
-      this.group.remove(this.group.children[0]);
+  set(type){
+    while(this.cloud.children.length){
+      this.cloud.remove(this.cloud.children[0]);
     }
 
-    for(let i=0;i<400;i++){
+    const N=600;
+
+    for(let i=0;i<N;i++){
       let x,y,z;
 
-      if(t==="s"){
+      if(type==="s"){
         let r=Math.random()*1.5;
-        let th=Math.random()*Math.PI*2;
-        let ph=Math.random()*Math.PI;
-        x=r*Math.sin(ph)*Math.cos(th);
-        y=r*Math.sin(ph)*Math.sin(th);
-        z=r*Math.cos(ph);
+        let t=Math.random()*Math.PI*2;
+        let p=Math.random()*Math.PI;
+        x=r*Math.sin(p)*Math.cos(t);
+        y=r*Math.sin(p)*Math.sin(t);
+        z=r*Math.cos(p);
       }
-      else if(t==="p"){
-        x=(Math.random()>0.5?1:-1)*Math.random();
+
+      else if(type==="p"){
+        let l=Math.random()>0.5?1:-1;
+        x=l*Math.random()*1.2;
         y=(Math.random()-0.5)*0.5;
         z=(Math.random()-0.5)*0.5;
       }
+
       else{
-        x=(Math.random()-0.5);
-        y=(Math.random()-0.5);
+        let a=Math.random()*Math.PI*2;
+        let r=Math.random()*1.2;
+        x=r*Math.cos(a);
+        y=r*Math.sin(a);
         z=(Math.random()-0.5);
       }
 
-      let p=new THREE.Mesh(
+      const p=new THREE.Mesh(
         new THREE.SphereGeometry(0.03,6,6),
         new THREE.MeshBasicMaterial({color:0x8b5cf6})
       );
 
       p.position.set(x,y,z);
-      this.group.add(p);
+      this.cloud.add(p);
     }
   }
 
   animate(){
     requestAnimationFrame(()=>this.animate());
-    this.group.rotation.y+=0.003;
-    this.r.render(this.scene,this.camera);
+    this.cloud.rotation.y+=0.003;
+    this.renderer.render(this.scene,this.camera);
   }
 }
 
 // ===============================
-// INIT (RESTORED FULL SITE FLOW)
+// INIT SYSTEM
 // ===============================
 window.addEventListener("DOMContentLoaded",()=>{
-
-  const sel=document.getElementById("element-select");
-
-  if(sel){
-    sel.addEventListener("change",loadElement);
-  }
+  initDropdown();
 
   window.atomRenderer=new AtomRenderer("atom-canvas");
   window.orbitalRenderer=new OrbitalRenderer("orbital-canvas");
 
+  const sel=document.getElementById("element-select");
+  sel.addEventListener("change",loadElement);
+
   loadElement();
-});
-/////////////////////////////////////////////////////
-// GLOBAL FUNCTION EXPORT FIX (CRITICAL)
-// THIS MAKES HTML BUTTONS WORK
-/////////////////////////////////////////////////////
-
-window.showPage = showPage;
-window.loadElement = loadElement;
-window.selectOrbital = window.selectOrbital || function(){};
-window.showBondTab = window.showBondTab || function(){};
-
-window.addEventListener("error", (e) => {
-  console.log("JS ERROR:", e.message);
 });
