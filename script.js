@@ -1,160 +1,114 @@
-// ===================== PERIODIC TABLE (118 ELEMENTS) =====================
-const elements = [
-  {n:"Hydrogen",s:"H",a:1},{n:"Helium",s:"He",a:2},
-  {n:"Carbon",s:"C",a:6},{n:"Nitrogen",s:"N",a:7},
-  {n:"Oxygen",s:"O",a:8},{n:"Fluorine",s:"F",a:9},
-  {n:"Sodium",s:"Na",a:11},{n:"Chlorine",s:"Cl",a:17},
-  {n:"Iron",s:"Fe",a:26},{n:"Copper",s:"Cu",a:29},
-  {n:"Gold",s:"Au",a:79},{n:"Uranium",s:"U",a:92},
-  {n:"Oganesson",s:"Og",a:118}
-];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Data Analytics Learning Hub</title>
 
-// ===================== UI =====================
-const select = document.getElementById("elementSelect");
-const info = document.getElementById("info");
+  <link rel="stylesheet" href="style.css"/>
 
-elements.forEach((e,i)=>{
-  let o=document.createElement("option");
-  o.value=i;
-  o.textContent=`${e.n} (${e.s})`;
-  select.appendChild(o);
-});
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 
-// ===================== THREE SETUP =====================
-let scene, camera, renderer;
-let atoms = [];
-let bonds = [];
-let group;
+<body>
 
-init();
+  <header>
+    <h1>Data Analytics & Data Visualization Hub</h1>
+    <p>Learn from Basics → Advanced with Interactive Simulations</p>
+  </header>
 
-function init(){
-  scene = new THREE.Scene();
+  <nav>
+    <a href="#basics">Basics</a>
+    <a href="#intermediate">Intermediate</a>
+    <a href="#advanced">Advanced</a>
+    <a href="#simulation">Simulation Lab</a>
+    <a href="#resources">Resources</a>
+    <a href="#contact">Contact</a>
+  </nav>
 
-  camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight,0.1,1000);
-  camera.position.z = 10;
+  <section class="hero">
+    <h2>Master Data Analytics Professionally</h2>
+    <p>Understand data, visualize patterns, and build real analytical thinking using interactive tools.</p>
+  </section>
 
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(innerWidth,innerHeight);
-  document.body.appendChild(renderer.domElement);
+  <!-- BASICS -->
+  <section id="basics">
+    <h2>📊 Basics of Data Analytics</h2>
+    <ul>
+      <li>What is Data Analytics?</li>
+      <li>Types of Data (Structured / Unstructured)</li>
+      <li>Data Cleaning Fundamentals</li>
+      <li>Mean, Median, Mode</li>
+    </ul>
+  </section>
 
-  group = new THREE.Group();
-  scene.add(group);
+  <!-- INTERMEDIATE -->
+  <section id="intermediate">
+    <h2>📈 Intermediate Concepts</h2>
+    <ul>
+      <li>Data Visualization Principles</li>
+      <li>Correlation & Trends</li>
+      <li>Excel / SQL Basics</li>
+      <li>Dashboard Thinking</li>
+    </ul>
+  </section>
 
-  animate();
-}
+  <!-- ADVANCED -->
+  <section id="advanced">
+    <h2>🚀 Advanced Analytics</h2>
+    <ul>
+      <li>Predictive Analytics</li>
+      <li>Regression Analysis</li>
+      <li>Machine Learning Basics</li>
+      <li>Business Intelligence Systems</li>
+    </ul>
+  </section>
 
-// ===================== ATOM =====================
-function createAtom(x,y,z,color=0xff5555){
-  const atom = new THREE.Mesh(
-    new THREE.SphereGeometry(0.4,16,16),
-    new THREE.MeshBasicMaterial({color})
-  );
+  <!-- SIMULATION -->
+  <section id="simulation">
+    <h2>🧪 Data Visualization Simulation Lab</h2>
 
-  atom.position.set(x,y,z);
-  group.add(atom);
-  atoms.push(atom);
-  return atom;
-}
+    <div class="controls">
+      <button onclick="generateData()">Generate Dataset</button>
+      <button onclick="renderBarChart()">Bar Chart</button>
+      <button onclick="renderLineChart()">Line Chart</button>
+    </div>
 
-// ===================== BOND =====================
-function createBond(a,b){
-  const geo = new THREE.BufferGeometry().setFromPoints([a.position,b.position]);
-  const mat = new THREE.LineBasicMaterial({color:0xffffff});
-  const line = new THREE.Line(geo,mat);
-  group.add(line);
-  bonds.push(line);
-}
+    <canvas id="chart" width="400" height="200"></canvas>
 
-// ===================== MOLECULE ENGINE =====================
+    <p class="note">
+      This simulation helps you understand how raw data converts into visual insights.
+    </p>
+  </section>
 
-// VSEPR-style simple geometry generator
-function buildMolecule(){
+  <!-- RESOURCES -->
+  <section id="resources">
+    <h2>📚 Learning Resources</h2>
+    <ul>
+      <li>Python for Data Analysis</li>
+      <li>SQL Practice Platforms</li>
+      <li>Google Data Analytics Certificate</li>
+      <li>Kaggle Datasets</li>
+      <li>Tableau Public</li>
+    </ul>
+  </section>
 
-  clearScene();
+  <!-- CONTACT -->
+  <section id="contact">
+    <h2>📞 Contact Us</h2>
+    <div class="contact-box">
+      <p><b>Name:</b> Debanjan Banerjee</p>
+      <p><b>Address:</b> Kolkata, West Bengal, India</p>
+      <p><b>Phone:</b> 6289143900</p>
+      <p><b>Email:</b> banerjeedebanjan22@gmail.com</p>
+    </div>
+  </section>
 
-  const mol = document.getElementById("molInput").value.trim().toUpperCase();
+  <footer>
+    <p>© 2026 Data Analytics Learning Hub | Built for Educational Purposes</p>
+  </footer>
 
-  info.innerHTML = `<b>Molecule:</b> ${mol}`;
-
-  if(mol === "H2O"){
-    const O = createAtom(0,0,0,0xff0000);
-    const H1 = createAtom(1,1,0,0xffffff);
-    const H2 = createAtom(-1,1,0,0xffffff);
-    createBond(O,H1);
-    createBond(O,H2);
-    info.innerHTML += "<br>Shape: Bent (104.5° approx)";
-  }
-
-  else if(mol === "CO2"){
-    const C = createAtom(0,0,0,0x3333ff);
-    const O1 = createAtom(-2,0,0,0xff0000);
-    const O2 = createAtom(2,0,0,0xff0000);
-    createBond(C,O1);
-    createBond(C,O2);
-    info.innerHTML += "<br>Shape: Linear (180°)";
-  }
-
-  else if(mol === "NH3"){
-    const N = createAtom(0,0,0,0x00ff00);
-    const H1 = createAtom(1,1,0,0xffffff);
-    const H2 = createAtom(-1,1,0,0xffffff);
-    const H3 = createAtom(0,-1,1,0xffffff);
-    createBond(N,H1);
-    createBond(N,H2);
-    createBond(N,H3);
-    info.innerHTML += "<br>Shape: Trigonal Pyramidal";
-  }
-
-  else if(mol === "CH4"){
-    const C = createAtom(0,0,0,0x3333ff);
-
-    const H = [
-      createAtom(1,1,1,0xffffff),
-      createAtom(-1,-1,1,0xffffff),
-      createAtom(1,-1,-1,0xffffff),
-      createAtom(-1,1,-1,0xffffff)
-    ];
-
-    H.forEach(h=>createBond(C,h));
-
-    info.innerHTML += "<br>Shape: Tetrahedral (109.5°)";
-  }
-
-  else{
-    info.innerHTML += "<br>⚠ Molecule not in database yet.";
-  }
-}
-
-// ===================== ATOM MODE =====================
-function loadAtom(){
-  clearScene();
-
-  const el = elements[select.value];
-
-  createAtom(0,0,0,0xff4444);
-
-  info.innerHTML = `
-    <b>${el.n}</b><br>
-    Symbol: ${el.s}<br>
-    Atomic Number: ${el.a}<br>
-    Mode: Atomic Structure
-  `;
-}
-
-// ===================== RESET =====================
-function clearScene(){
-  atoms.forEach(a=>group.remove(a));
-  bonds.forEach(b=>group.remove(b));
-  atoms=[];
-  bonds=[];
-}
-
-// ===================== ANIMATION =====================
-function animate(){
-  requestAnimationFrame(animate);
-
-  group.rotation.y += 0.005;
-
-  renderer.render(scene,camera);
-}
+  <script src="script.js"></script>
+</body>
+</html>
