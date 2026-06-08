@@ -1,114 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Data Analytics Learning Hub</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Data Analytics Mastery</title>
 
-  <link rel="stylesheet" href="style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0a0f1c;
+  color: #fff;
+}
+
+header {
+  padding: 20px;
+  text-align: center;
+  background: #111827;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: calc(100vh - 80px);
+}
+
+.sidebar {
+  background: #0f172a;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.sidebar button {
+  width: 100%;
+  margin: 6px 0;
+  padding: 10px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #334155;
+}
+
+.main {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.card {
+  background: #111827;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+canvas {
+  margin-top: 20px;
+  background: #0f172a;
+  border-radius: 10px;
+}
+
+small {
+  color: #94a3b8;
+}
+</style>
 </head>
 
 <body>
 
-  <header>
-    <h1>Data Analytics & Data Visualization Hub</h1>
-    <p>Learn from Basics → Advanced with Interactive Simulations</p>
-  </header>
+<header>
+  <h1>Data Analytics & Visualization Mastery</h1>
+  <p>Structured Learning Platform (Basic → Advanced)</p>
+</header>
 
-  <nav>
-    <a href="#basics">Basics</a>
-    <a href="#intermediate">Intermediate</a>
-    <a href="#advanced">Advanced</a>
-    <a href="#simulation">Simulation Lab</a>
-    <a href="#resources">Resources</a>
-    <a href="#contact">Contact</a>
-  </nav>
+<div class="container">
 
-  <section class="hero">
-    <h2>Master Data Analytics Professionally</h2>
-    <p>Understand data, visualize patterns, and build real analytical thinking using interactive tools.</p>
-  </section>
+  <div class="sidebar">
+    <button onclick="load('intro')">Introduction</button>
+    <button onclick="load('data')">Data Types</button>
+    <button onclick="load('stats')">Statistics Core</button>
+    <button onclick="load('clean')">Data Cleaning</button>
+    <button onclick="load('viz')">Visualization</button>
+    <button onclick="load('sim')">Simulation Lab</button>
+    <button onclick="load('resources')">Resources</button>
+    <button onclick="load('contact')">Contact</button>
+  </div>
 
-  <!-- BASICS -->
-  <section id="basics">
-    <h2>📊 Basics of Data Analytics</h2>
-    <ul>
-      <li>What is Data Analytics?</li>
-      <li>Types of Data (Structured / Unstructured)</li>
-      <li>Data Cleaning Fundamentals</li>
-      <li>Mean, Median, Mode</li>
-    </ul>
-  </section>
-
-  <!-- INTERMEDIATE -->
-  <section id="intermediate">
-    <h2>📈 Intermediate Concepts</h2>
-    <ul>
-      <li>Data Visualization Principles</li>
-      <li>Correlation & Trends</li>
-      <li>Excel / SQL Basics</li>
-      <li>Dashboard Thinking</li>
-    </ul>
-  </section>
-
-  <!-- ADVANCED -->
-  <section id="advanced">
-    <h2>🚀 Advanced Analytics</h2>
-    <ul>
-      <li>Predictive Analytics</li>
-      <li>Regression Analysis</li>
-      <li>Machine Learning Basics</li>
-      <li>Business Intelligence Systems</li>
-    </ul>
-  </section>
-
-  <!-- SIMULATION -->
-  <section id="simulation">
-    <h2>🧪 Data Visualization Simulation Lab</h2>
-
-    <div class="controls">
-      <button onclick="generateData()">Generate Dataset</button>
-      <button onclick="renderBarChart()">Bar Chart</button>
-      <button onclick="renderLineChart()">Line Chart</button>
+  <div class="main">
+    <div id="content" class="card">
+      <h2>Welcome</h2>
+      <p>Select a module to start learning Data Analytics professionally.</p>
     </div>
 
-    <canvas id="chart" width="400" height="200"></canvas>
+    <canvas id="chart"></canvas>
+  </div>
 
-    <p class="note">
-      This simulation helps you understand how raw data converts into visual insights.
-    </p>
-  </section>
+</div>
 
-  <!-- RESOURCES -->
-  <section id="resources">
-    <h2>📚 Learning Resources</h2>
-    <ul>
-      <li>Python for Data Analysis</li>
-      <li>SQL Practice Platforms</li>
-      <li>Google Data Analytics Certificate</li>
-      <li>Kaggle Datasets</li>
-      <li>Tableau Public</li>
-    </ul>
-  </section>
+<script>
+let chart;
 
-  <!-- CONTACT -->
-  <section id="contact">
-    <h2>📞 Contact Us</h2>
-    <div class="contact-box">
+function load(page) {
+
+  const box = document.getElementById("content");
+
+  if (chart) {
+    chart.destroy();
+    chart = null;
+  }
+
+  if (page === "intro") {
+    box.innerHTML = `
+      <h2>Introduction</h2>
+      <p>Data Analytics is the science of analyzing raw data to extract meaningful insights for decision making.</p>
+      <small>Used in business, AI, finance, healthcare, and tech industries.</small>
+    `;
+  }
+
+  else if (page === "data") {
+    box.innerHTML = `
+      <h2>Types of Data</h2>
+      <ul>
+        <li><b>Structured:</b> Excel, SQL tables</li>
+        <li><b>Unstructured:</b> Images, text, video</li>
+        <li><b>Semi-structured:</b> JSON, XML</li>
+      </ul>
+    `;
+  }
+
+  else if (page === "stats") {
+    box.innerHTML = `
+      <h2>Core Statistics</h2>
+      <ul>
+        <li>Mean = average value</li>
+        <li>Median = middle value</li>
+        <li>Mode = most frequent value</li>
+      </ul>
+    `;
+  }
+
+  else if (page === "clean") {
+    box.innerHTML = `
+      <h2>Data Cleaning</h2>
+      <p>Real-world data is messy. Cleaning includes:</p>
+      <ul>
+        <li>Removing null values</li>
+        <li>Fixing duplicates</li>
+        <li>Standardizing formats</li>
+      </ul>
+    `;
+  }
+
+  else if (page === "viz") {
+    box.innerHTML = `<h2>Visualization</h2><p>Charts help detect patterns instantly.</p>`;
+    renderChart();
+  }
+
+  else if (page === "sim") {
+    box.innerHTML = `<h2>Simulation Lab</h2><p>Generating dataset and visualizing trends...</p>`;
+    renderSimulation();
+  }
+
+  else if (page === "resources") {
+    box.innerHTML = `
+      <h2>Resources</h2>
+      <ul>
+        <li>Kaggle Datasets</li>
+        <li>Pandas Documentation</li>
+        <li>Google Data Analytics Certificate</li>
+        <li>Tableau Public</li>
+      </ul>
+    `;
+  }
+
+  else if (page === "contact") {
+    box.innerHTML = `
+      <h2>Contact</h2>
       <p><b>Name:</b> Debanjan Banerjee</p>
       <p><b>Address:</b> Kolkata, West Bengal, India</p>
       <p><b>Phone:</b> 6289143900</p>
       <p><b>Email:</b> banerjeedebanjan22@gmail.com</p>
-    </div>
-  </section>
+    `;
+  }
+}
 
-  <footer>
-    <p>© 2026 Data Analytics Learning Hub | Built for Educational Purposes</p>
-  </footer>
+function renderChart() {
+  const ctx = document.getElementById("chart").getContext("2d");
 
-  <script src="script.js"></script>
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["A","B","C","D","E"],
+      datasets: [{
+        label: "Sales Data",
+        data: [12, 19, 7, 15, 10]
+      }]
+    }
+  });
+}
+
+function renderSimulation() {
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  const data = Array.from({length: 10}, () => Math.floor(Math.random()*100));
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: data.map((_,i)=>"P"+i),
+      datasets: [{
+        label: "Generated Dataset Trend",
+        data: data,
+        borderColor: "#38bdf8",
+        fill: false
+      }]
+    }
+  });
+}
+</script>
+
 </body>
 </html>
