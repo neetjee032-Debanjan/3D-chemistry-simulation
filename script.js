@@ -250,3 +250,16 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   loadElement();
 });
+/////////////////////////////////////////////////////
+// GLOBAL FUNCTION EXPORT FIX (CRITICAL)
+// THIS MAKES HTML BUTTONS WORK
+/////////////////////////////////////////////////////
+
+window.showPage = showPage;
+window.loadElement = loadElement;
+window.selectOrbital = window.selectOrbital || function(){};
+window.showBondTab = window.showBondTab || function(){};
+
+window.addEventListener("error", (e) => {
+  console.log("JS ERROR:", e.message);
+});
