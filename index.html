@@ -1,69 +1,2836 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Atom Simulation 3D</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <style>
-    :root{
-      --bg:#060a14;--panel:#111827;--border:#1e3050;--accent:#00d4ff;--accent2:#7c3aed;
-      --accent3:#10b981;--gold:#f59e0b;--text:#e2e8f0;--text2:#94a3b8;--rad:12px;
-      --font:Segoe UI,system-ui,sans-serif
-    }
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
-    .app{display:grid;grid-template-columns:340px 1fr;min-height:100vh}
-    .side{padding:16px;background:#09111f;border-right:1px solid var(--border);overflow:auto}
-    .main{padding:16px}
-    .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;margin-bottom:16px}
-    .card h3{margin:0;padding:14px 16px;border-bottom:1px solid var(--border);color:var(--accent);font-size:14px}
-    .card .body{padding:16px}
-    select,button{width:100%;background:#0d1424;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px}
-    button{cursor:pointer;background:rgba(0,212,255,.1);color:var(--accent);margin-top:10px}
-    button:hover{background:rgba(0,212,255,.18)}
-    .canvas-wrap{height:calc(100vh - 32px);min-height:680px;background:radial-gradient(circle at center,#0d1a2e 0,#060a14 100%);border:1px solid var(--border);border-radius:var(--rad);position:relative;overflow:hidden}
-    canvas{display:block;width:100%!important;height:100%!important}
-    .overlay{position:absolute;top:12px;left:12px;z-index:2;display:flex;gap:8px;flex-wrap:wrap}
-    .chip{background:rgba(6,10,20,.8);border:1px solid var(--border);border-radius:999px;padding:5px 10px;font-size:11px;color:var(--text2)}
-    .hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:2;background:rgba(6,10,20,.7);border:1px solid var(--border);border-radius:999px;padding:5px 10px;font-size:11px;color:var(--text2)}
-    .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(30,48,80,.55);font-size:13px}
-    .row:last-child{border-bottom:none}.label{color:var(--text2)} .value{font-weight:600}
-    @media (max-width:900px){.app{grid-template-columns:1fr}.canvas-wrap{height:70vh;min-height:500px}.side{border-right:none;border-bottom:1px solid var(--border)}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AtomLab — Atomic Structure & Chemical Bonding</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --bg: #060a14;
+  --bg2: #0d1424;
+  --bg3: #111827;
+  --panel: #141e2e;
+  --border: #1e3050;
+  --accent: #00d4ff;
+  --accent2: #7c3aed;
+  --accent3: #10b981;
+  --gold: #f59e0b;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --danger: #ef4444;
+  --rad: 10px;
+  --font: 'Segoe UI', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── SCROLLBAR ─────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── HEADER ─────────────────────────────── */
+#header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,10,20,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex; align-items: center; gap: 24px;
+  height: 56px;
+}
+#logo {
+  font-size: 20px; font-weight: 700; letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; white-space: nowrap;
+}
+#nav { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+.nav-btn {
+  background: none; border: none; color: var(--text2);
+  padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: all 0.2s;
+}
+.nav-btn:hover { background: var(--bg3); color: var(--text); }
+.nav-btn.active { background: rgba(0,212,255,0.1); color: var(--accent); }
+
+/* ─── MAIN LAYOUT ────────────────────────── */
+#main { display: none; flex-direction: column; }
+#main.active { display: flex; }
+
+/* ─── SECTION HEADERS ─────────────────────── */
+.section-header {
+  padding: 32px 32px 0;
+  display: flex; align-items: baseline; gap: 16px;
+}
+.section-title {
+  font-size: 22px; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), #60a5fa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.section-sub { font-size: 13px; color: var(--text3); }
+
+/* ─── CARDS ──────────────────────────────── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--rad);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 600; color: var(--accent);
+  display: flex; align-items: center; gap: 8px;
+}
+.card-body { padding: 18px; }
+
+/* ─── BUTTONS ────────────────────────────── */
+.btn {
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: var(--accent); padding: 8px 16px;
+  border-radius: 6px; cursor: pointer; font-size: 13px;
+  font-weight: 500; transition: all 0.2s; white-space: nowrap;
+}
+.btn:hover { background: rgba(0,212,255,0.2); }
+.btn.active, .btn.selected { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn-purple {
+  background: rgba(124,58,237,0.15);
+  border-color: rgba(124,58,237,0.4); color: var(--accent2);
+}
+.btn-purple:hover { background: rgba(124,58,237,0.25); }
+.btn-green {
+  background: rgba(16,185,129,0.1);
+  border-color: rgba(16,185,129,0.3); color: var(--accent3);
+}
+.btn-green:hover { background: rgba(16,185,129,0.2); }
+.btn-gold {
+  background: rgba(245,158,11,0.1);
+  border-color: rgba(245,158,11,0.3); color: var(--gold);
+}
+
+/* ─── TAGS / BADGES ──────────────────────── */
+.badge {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+.badge-s { background: rgba(0,212,255,0.1); color: var(--accent); }
+.badge-p { background: rgba(124,58,237,0.15); color: #a78bfa; }
+.badge-d { background: rgba(245,158,11,0.1); color: var(--gold); }
+.badge-f { background: rgba(239,68,68,0.1); color: #f87171; }
+
+/* ─── CANVAS CONTAINERS ──────────────────── */
+.canvas-wrap {
+  position: relative;
+  background: radial-gradient(ellipse at center, #0d1a2e 0%, #060a14 100%);
+  border-radius: var(--rad);
+  overflow: hidden;
+}
+.canvas-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+.canvas-label {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; color: var(--text3);
+  background: rgba(6,10,20,0.7); padding: 3px 10px; border-radius: 20px;
+}
+.canvas-overlay {
+  position: absolute; top: 10px; left: 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.info-chip {
+  background: rgba(6,10,20,0.85);
+  border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; color: var(--text2);
+}
+
+/* ─── GRIDS ──────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+
+/* ─── SELECTS & INPUTS ───────────────────── */
+select, input[type=text], input[type=range] {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 8px 12px;
+  font-size: 13px; outline: none; transition: border 0.2s;
+}
+select:focus, input[type=text]:focus { border-color: var(--accent); }
+input[type=range] {
+  padding: 4px 0; cursor: pointer; height: 28px;
+  -webkit-appearance: none; width: 100%;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent);
+  cursor: pointer; margin-top: -5px;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px; background: var(--border); border-radius: 2px;
+}
+
+/* ─── TABS ────────────────────────────────── */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab {
+  padding: 6px 14px; border-radius: 6px;
+  background: none; border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; font-size: 12px;
+  transition: all 0.2s;
+}
+.tab:hover { border-color: var(--accent); color: var(--accent); }
+.tab.active { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); }
+
+/* ─── SCROLL SECTIONS ─────────────────────── */
+.scroll-x { overflow-x: auto; white-space: nowrap; padding-bottom: 4px; }
+
+/* ─── INFO PANELS ────────────────────────── */
+.info-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.info-row:last-child { border-bottom: none; }
+.info-label { font-size: 12px; color: var(--text3); }
+.info-value { font-size: 13px; font-weight: 600; color: var(--text); }
+.info-value.accent { color: var(--accent); }
+
+/* ─── THEORY BOXES ───────────────────────── */
+.theory-box {
+  background: rgba(0,212,255,0.04);
+  border-left: 3px solid var(--accent);
+  padding: 12px 16px; border-radius: 4px;
+  margin: 12px 0;
+}
+.theory-box.purple { border-left-color: var(--accent2); background: rgba(124,58,237,0.05); }
+.theory-box.green { border-left-color: var(--accent3); background: rgba(16,185,129,0.05); }
+.theory-box.gold { border-left-color: var(--gold); background: rgba(245,158,11,0.05); }
+.theory-box h4 { font-size: 12px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.theory-box p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ─── ORBITAL SHAPES ─────────────────────── */
+.orbital-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.orbital-item {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; cursor: pointer;
+  transition: all 0.2s; text-align: center; min-width: 90px;
+}
+.orbital-item:hover, .orbital-item.selected {
+  border-color: var(--accent); background: rgba(0,212,255,0.05);
+}
+.orbital-item .o-name { font-size: 14px; font-weight: 700; color: var(--accent); }
+.orbital-item .o-desc { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* ─── MO DIAGRAM ─────────────────────────── */
+.mo-diagram { display: flex; align-items: center; gap: 16px; }
+.mo-atom-col { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 70px; }
+.mo-center-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 160px; }
+.mo-level {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 10px; font-size: 12px;
+  text-align: center; position: relative;
+}
+.mo-level .e-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin: 0 1px;
+}
+.e-up { background: var(--accent); }
+.e-down { background: #f87171; }
+.mo-line {
+  stroke: var(--border); stroke-width: 0.5;
+  stroke-dasharray: 3,3; fill: none;
+}
+
+/* ─── PERIODIC TABLE MINI ─────────────────── */
+.pt-grid {
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  gap: 2px; font-size: 10px;
+}
+.pt-cell {
+  aspect-ratio: 1; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+  font-weight: 600; font-size: 9px;
+}
+.pt-cell:hover { border-color: var(--accent); transform: scale(1.15); z-index: 10; }
+.pt-cell.selected { border-color: var(--accent); box-shadow: 0 0 8px rgba(0,212,255,0.4); }
+.pt-alkali { background: rgba(239,68,68,0.2); color: #f87171; }
+.pt-alkaline { background: rgba(245,158,11,0.2); color: #fcd34d; }
+.pt-transition { background: rgba(0,212,255,0.12); color: var(--accent); }
+.pt-metalloid { background: rgba(16,185,129,0.15); color: #34d399; }
+.pt-nonmetal { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.pt-halogen { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.pt-noble { background: rgba(99,102,241,0.2); color: #818cf8; }
+.pt-lanthanide { background: rgba(236,72,153,0.15); color: #f472b6; }
+.pt-actinide { background: rgba(139,92,246,0.15); color: #c084fc; }
+.pt-post { background: rgba(20,184,166,0.15); color: #2dd4bf; }
+
+/* ─── FORMULA DISPLAY ─────────────────────── */
+.formula {
+  font-size: 18px; font-weight: 700; letter-spacing: 1px;
+  font-family: 'Courier New', monospace;
+}
+sub { font-size: 11px; }
+
+/* ─── MO SVG CONTAINER ───────────────────── */
+#mo-svg-wrap { overflow-x: auto; }
+
+/* ─── ELECTRON CONFIG ─────────────────────── */
+.config-line { font-family: monospace; font-size: 13px; color: var(--text2); margin: 2px 0; }
+.config-sup { font-size: 9px; vertical-align: super; }
+
+/* ─── VSEPR TABLE ────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--bg3); color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+td { padding: 10px 12px; border-bottom: 1px solid rgba(30,48,80,0.5); color: var(--text2); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(0,212,255,0.03); }
+
+/* ─── TOAST / STATUS ─────────────────────── */
+#toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 999;
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 10px 18px; border-radius: 8px; font-size: 13px;
+  color: var(--text); opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+/* ─── RESPONSIVE ─────────────────────────── */
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  #header { padding: 0 12px; }
+  .section-header { padding: 20px 16px 0; }
+}
+
+/* ─── PADDING HELPERS ─────────────────────── */
+.p16 { padding: 16px; }
+.p24 { padding: 24px; }
+.p32 { padding: 32px; }
+.gap8 { gap: 8px; }
+.gap12 { gap: 12px; }
+.gap16 { gap: 16px; }
+.gap24 { gap: 24px; }
+.mt8 { margin-top: 8px; }
+.mt12 { margin-top: 12px; }
+.mt16 { margin-top: 16px; }
+.mt24 { margin-top: 24px; }
+.mb8 { margin-bottom: 8px; }
+.mb12 { margin-bottom: 12px; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 12px; }
+.text-xxs { font-size: 11px; }
+.text2 { color: var(--text2); }
+.text3 { color: var(--text3); }
+.text-accent { color: var(--accent); }
+.font-bold { font-weight: 700; }
+.font-mono { font-family: monospace; }
+.full-w { width: 100%; }
+.relative { position: relative; }
+
+/* HERO */
+#hero {
+  background: radial-gradient(ellipse at 30% 50%, rgba(0,212,255,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 20%, rgba(124,58,237,0.07) 0%, transparent 50%),
+              var(--bg);
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 40px 24px;
+}
+#hero h1 {
+  font-size: clamp(32px, 6vw, 72px); font-weight: 800;
+  line-height: 1.1; letter-spacing: -2px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 40%, var(--accent2) 80%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 20px;
+}
+#hero p { font-size: 17px; color: var(--text2); max-width: 600px; line-height: 1.7; margin-bottom: 40px; }
+.hero-cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 48px; }
+.hero-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 24px; cursor: pointer;
+  transition: all 0.3s; text-align: left; min-width: 200px; max-width: 220px;
+}
+.hero-card:hover { border-color: var(--accent); transform: translateY(-4px); background: rgba(0,212,255,0.05); }
+.hero-card .icon { font-size: 28px; margin-bottom: 10px; }
+.hero-card .title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.hero-card .desc { font-size: 12px; color: var(--text3); line-height: 1.5; }
+
+/* ATOM CANVAS */
+#atom-canvas-main { width: 100%; height: 400px; }
+#mol-canvas-main { width: 100%; height: 360px; }
+#orbital-canvas { width: 100%; height: 300px; }
+#bond-canvas { width: 100%; height: 320px; }
+#mo-3d-canvas { width: 100%; height: 280px; }
+
+/* ELECTRON SHELL VISUALIZER */
+#shell-svg { display: block; margin: 0 auto; }
+
+/* Loading shimmer */
+.loading { animation: shimmer 1.5s infinite; }
+@keyframes shimmer {
+  0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; }
+}
+
+/* Section padding */
+.section-content { padding: 20px 32px 32px; }
+
+/* Quantum number display */
+.qn-box {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+}
+.qn-symbol { font-size: 18px; font-weight: 800; font-style: italic; color: var(--accent); font-family: Georgia, serif; }
+.qn-name { font-size: 11px; color: var(--text3); }
+.qn-range { font-size: 13px; color: var(--text2); font-family: monospace; }
+
+/* Energy level diagram */
+.energy-level { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+.energy-bar { height: 2px; background: var(--border); flex: 1; position: relative; }
+.energy-bar::before {
+  content: ''; position: absolute;
+  right: 0; top: -3px;
+  width: 40px; height: 8px;
+  background: linear-gradient(90deg, transparent, currentColor);
+}
+.energy-orb { 
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-family: monospace; color: var(--text2);
+  min-width: 40px;
+}
+
+/* VSEPR shape selector */
+.shape-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text2); padding: 8px 14px; border-radius: 8px;
+  cursor: pointer; font-size: 12px; text-align: center;
+  transition: all 0.2s; line-height: 1.4;
+}
+.shape-btn:hover, .shape-btn.active {
+  border-color: var(--accent); color: var(--accent);
+  background: rgba(0,212,255,0.05);
+}
+
+/* MO energy level SVG */
+.mo-energy-svg { display: block; overflow: visible; }
+
+/* Hybridisation boxes */
+.hyb-box {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; cursor: pointer;
+  transition: all 0.2s;
+}
+.hyb-box:hover, .hyb-box.active { border-color: var(--accent2); background: rgba(124,58,237,0.07); }
+.hyb-type { font-size: 20px; font-weight: 800; color: var(--accent2); font-family: monospace; }
+.hyb-angle { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.hyb-ex { font-size: 13px; color: var(--text2); margin-top: 6px; }
+
+/* Resource links */
+.resource-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: color 0.2s;
+}
+.resource-item:last-child { border-bottom: none; }
+.resource-item:hover .r-title { color: var(--accent); }
+.r-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.r-title { font-size: 13px; font-weight: 600; }
+.r-sub { font-size: 11px; color: var(--text3); }
+</style>
 </head>
 <body>
-<div class="app">
-  <div class="side">
-    <div class="card">
-      <h3>Element</h3>
-      <div class="body">
-        <select id="element-select"></select>
-        <button id="toggle-spin">Toggle Animation</button>
-        <button id="toggle-nucleus">Toggle Nucleus</button>
-        <button id="reset-view">Reset View</button>
-      </div>
-    </div>
-    <div class="card">
-      <h3>Properties</h3>
-      <div class="body" id="info"></div>
-    </div>
-    <div class="card">
-      <h3>Shells</h3>
-      <div class="body" id="shells"></div>
-    </div>
-  </div>
-  <div class="main">
-    <div class="canvas-wrap">
-      <div class="overlay">
-        <div class="chip" id="chip-name">Hydrogen</div>
-        <div class="chip" id="chip-config">1s1</div>
-      </div>
-      <canvas id="atom-canvas"></canvas>
-      <div class="hint">Drag to rotate • Scroll to zoom</div>
-    </div>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="logo">⚛ AtomLab</div>
+  <div id="nav">
+    <button class="nav-btn active" onclick="showPage('home')">🏠 Home</button>
+    <button class="nav-btn" onclick="showPage('atomic')">⚛ Atomic Structure</button>
+    <button class="nav-btn" onclick="showPage('orbital')">🔮 Orbital Explorer</button>
+    <button class="nav-btn" onclick="showPage('bonding')">🔗 Chemical Bonding</button>
+    <button class="nav-btn" onclick="showPage('vsepr')">📐 VSEPR</button>
+    <button class="nav-btn" onclick="showPage('hybrid')">🧬 Hybridisation</button>
+    <button class="nav-btn" onclick="showPage('mot')">🌐 MOT</button>
+    <button class="nav-btn" onclick="showPage('molecules')">🧪 Molecule Lab</button>
+    <button class="nav-btn" onclick="showPage('resources')">📚 Resources</button>
   </div>
 </div>
 
-<script src="atom.js"></script>
+<!-- ════════════════ HOME PAGE ════════════════ -->
+<div id="page-home" class="active" style="display:flex;flex-direction:column;">
+<div id="hero">
+  <div id="hero-canvas-wrap" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.3;pointer-events:none;overflow:hidden;">
+    <canvas id="hero-bg-canvas" style="width:100%;height:100%;"></canvas>
+  </div>
+  <h1>Atomic Structure &<br>Chemical Bonding</h1>
+  <p>Explore the quantum world through 3D simulations, interactive visualizations, and comprehensive theory from fundamentals to advanced concepts.</p>
+  <div class="hero-cards">
+    <div class="hero-card" onclick="showPage('atomic')">
+      <div class="icon">⚛</div>
+      <div class="title">Atomic Structure Lab</div>
+      <div class="desc">3D atom models, electron configurations, shell structure, and quantum numbers</div>
+    </div>
+    <div class="hero-card" onclick="showPage('orbital')">
+      <div class="icon">🔮</div>
+      <div class="title">Orbital Explorer</div>
+      <div class="desc">Visualize s, p, d, f orbitals in 3D with interactive controls and electron density</div>
+    </div>
+    <div class="hero-card" onclick="showPage('bonding')">
+      <div class="icon">🔗</div>
+      <div class="title">Chemical Bonding</div>
+      <div class="desc">Ionic, covalent, metallic bonding with Valence Bond Theory and 3D structures</div>
+    </div>
+    <div class="hero-card" onclick="showPage('vsepr')">
+      <div class="icon">📐</div>
+      <div class="title">VSEPR Theory</div>
+      <div class="desc">Predict molecular geometry with electron pair repulsion in interactive 3D</div>
+    </div>
+    <div class="hero-card" onclick="showPage('hybrid')">
+      <div class="icon">🧬</div>
+      <div class="title">Hybridisation</div>
+      <div class="desc">sp, sp², sp³, sp³d, sp³d² orbital mixing with 3D bond visualization</div>
+    </div>
+    <div class="hero-card" onclick="showPage('mot')">
+      <div class="icon">🌐</div>
+      <div class="title">Molecular Orbital Theory</div>
+      <div class="desc">Interactive MO diagrams, bond order, magnetic properties for key molecules</div>
+    </div>
+  </div>
+  <div class="flex gap12 wrap" style="justify-content:center;">
+    <button class="btn" onclick="showPage('atomic')">Start with Basics →</button>
+    <button class="btn btn-purple" onclick="showPage('molecules')">🧪 Molecule Lab</button>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════ ATOMIC STRUCTURE PAGE ════════════════ -->
+<div id="page-atomic" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">⚛ Atomic Structure Lab</div>
+  <div class="section-sub">Explore atoms, subatomic particles, electron configurations & quantum numbers</div>
+</div>
+<div class="section-content">
+
+  <!-- Element Selector -->
+  <div class="flex gap12 items-center mb12 wrap">
+    <select id="element-select" onchange="loadElement()" style="width:200px;">
+      <option value="H">Hydrogen (H) - Z=1</option>
+      <option value="He">Helium (He) - Z=2</option>
+      <option value="Li">Lithium (Li) - Z=3</option>
+      <option value="Be">Beryllium (Be) - Z=4</option>
+      <option value="B">Boron (B) - Z=5</option>
+      <option value="C" selected>Carbon (C) - Z=6</option>
+      <option value="N">Nitrogen (N) - Z=7</option>
+      <option value="O">Oxygen (O) - Z=8</option>
+      <option value="F">Fluorine (F) - Z=9</option>
+      <option value="Ne">Neon (Ne) - Z=10</option>
+      <option value="Na">Sodium (Na) - Z=11</option>
+      <option value="Mg">Magnesium (Mg) - Z=12</option>
+      <option value="Al">Aluminium (Al) - Z=13</option>
+      <option value="Si">Silicon (Si) - Z=14</option>
+      <option value="P">Phosphorus (P) - Z=15</option>
+      <option value="S">Sulfur (S) - Z=16</option>
+      <option value="Cl">Chlorine (Cl) - Z=17</option>
+      <option value="Ar">Argon (Ar) - Z=18</option>
+      <option value="K">Potassium (K) - Z=19</option>
+      <option value="Ca">Calcium (Ca) - Z=20</option>
+      <option value="Fe">Iron (Fe) - Z=26</option>
+      <option value="Cu">Copper (Cu) - Z=29</option>
+      <option value="Zn">Zinc (Zn) - Z=30</option>
+      <option value="Br">Bromine (Br) - Z=35</option>
+      <option value="Kr">Krypton (Kr) - Z=36</option>
+      <option value="I">Iodine (I) - Z=53</option>
+      <option value="Xe">Xenon (Xe) - Z=54</option>
+      <option value="Au">Gold (Au) - Z=79</option>
+      <option value="Pb">Lead (Pb) - Z=82</option>
+      <option value="U">Uranium (U) - Z=92</option>
+    </select>
+    <div id="atom-z-badge" class="badge badge-s">Z = 6</div>
+    <div id="atom-period-badge" class="badge badge-p">Period 2</div>
+    <div id="atom-group-badge" class="badge" style="background:rgba(16,185,129,0.1);color:var(--accent3);">Group 14</div>
+    <div id="atom-block-badge" class="badge badge-d">p-block</div>
+  </div>
+
+  <div class="grid-2 gap16">
+    <!-- 3D Atom Viewer -->
+    <div class="card">
+      <div class="card-header">🌐 3D Atom Viewer <span class="text-xxs text2 ml" style="margin-left:auto;">Drag to rotate • Scroll to zoom</span></div>
+      <div class="canvas-wrap" style="height:380px;">
+        <canvas id="atom-canvas"></canvas>
+        <div class="canvas-overlay">
+          <div class="info-chip" id="atom-name-chip">Carbon</div>
+          <div class="info-chip" id="atom-config-chip">1s² 2s² 2p²</div>
+        </div>
+        <div class="canvas-label">Drag to rotate • Scroll to zoom</div>
+      </div>
+      <div class="card-body">
+        <div class="flex gap8 wrap">
+          <button class="btn text-xxs" onclick="atomRenderer && atomRenderer.setView('default')">Reset View</button>
+          <button class="btn text-xxs" onclick="atomRenderer && atomRenderer.toggleSpin()">⏯ Animate</button>
+          <button class="btn text-xxs" onclick="atomRenderer && atomRenderer.toggleNucleus()">🔴 Nucleus</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Element Info Panel -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div class="card-header">📊 Element Properties</div>
+        <div class="card-body" style="padding:12px 18px;">
+          <div class="info-row"><span class="info-label">Symbol</span><span class="info-value accent" id="el-symbol">C</span></div>
+          <div class="info-row"><span class="info-label">Atomic Number (Z)</span><span class="info-value" id="el-z">6</span></div>
+          <div class="info-row"><span class="info-label">Atomic Mass</span><span class="info-value" id="el-mass">12.011 u</span></div>
+          <div class="info-row"><span class="info-label">Protons</span><span class="info-value" id="el-protons">6</span></div>
+          <div class="info-row"><span class="info-label">Neutrons (most stable)</span><span class="info-value" id="el-neutrons">6</span></div>
+          <div class="info-row"><span class="info-label">Electrons</span><span class="info-value" id="el-electrons">6</span></div>
+          <div class="info-row"><span class="info-label">Electron Config</span><span class="info-value font-mono text-xs" id="el-config">1s² 2s² 2p²</span></div>
+          <div class="info-row"><span class="info-label">Valence Electrons</span><span class="info-value accent" id="el-valence">4</span></div>
+          <div class="info-row"><span class="info-label">Electronegativity</span><span class="info-value" id="el-en">2.55</span></div>
+          <div class="info-row"><span class="info-label">Ionization Energy</span><span class="info-value" id="el-ie">1086 kJ/mol</span></div>
+          <div class="info-row"><span class="info-label">Atomic Radius</span><span class="info-value" id="el-radius">77 pm</span></div>
+          <div class="info-row"><span class="info-label">Oxidation States</span><span class="info-value" id="el-ox">-4, +2, +4</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🐚 Shell Structure</div>
+        <div class="card-body" style="padding:14px;">
+          <div id="shell-display"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quantum Numbers Section -->
+  <div class="mt16">
+    <div class="card">
+      <div class="card-header">🔢 Quantum Numbers</div>
+      <div class="card-body">
+        <div class="theory-box mb12">
+          <h4>The Four Quantum Numbers</h4>
+          <p>Every electron in an atom is uniquely described by four quantum numbers. No two electrons can have the same set of all four quantum numbers (Pauli Exclusion Principle).</p>
+        </div>
+        <div class="grid-4 gap12 mb16">
+          <div class="qn-box"><span class="qn-symbol">n</span><div><div class="qn-name">Principal</div><div class="qn-range">1, 2, 3, 4...</div></div></div>
+          <div class="qn-box"><span class="qn-symbol">l</span><div><div class="qn-name">Azimuthal</div><div class="qn-range">0 to n−1</div></div></div>
+          <div class="qn-box"><span class="qn-symbol">m<sub>l</sub></span><div><div class="qn-name">Magnetic</div><div class="qn-range">−l to +l</div></div></div>
+          <div class="qn-box"><span class="qn-symbol">m<sub>s</sub></span><div><div class="qn-name">Spin</div><div class="qn-range">+½ or −½</div></div></div>
+        </div>
+        <div id="qn-detail" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aufbau / Energy Levels -->
+  <div class="mt16 grid-2 gap16">
+    <div class="card">
+      <div class="card-header">📈 Aufbau Principle — Filling Order</div>
+      <div class="card-body">
+        <div class="theory-box mb12">
+          <h4>Aufbau Principle</h4>
+          <p>Electrons fill orbitals starting from the lowest energy level. Combined with the (n+l) rule, the actual filling order deviates from simple n ordering.</p>
+        </div>
+        <div id="aufbau-diagram" style="font-family:monospace;font-size:12px;line-height:2;"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">↑↓ Hund's Rule & Pauli Principle</div>
+      <div class="card-body">
+        <div class="theory-box purple mb12">
+          <h4>Hund's Rule of Maximum Multiplicity</h4>
+          <p>In degenerate orbitals, electrons occupy each orbital singly before pairing up, with parallel spins (same m<sub>s</sub>).</p>
+        </div>
+        <div class="theory-box gold mb12">
+          <h4>Pauli Exclusion Principle</h4>
+          <p>No two electrons in an atom can have identical values of all four quantum numbers. Each orbital holds maximum 2 electrons with opposite spins.</p>
+        </div>
+        <div id="hund-visual" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Periodic Trends -->
+  <div class="mt16 card">
+    <div class="card-header">📉 Periodic Trends</div>
+    <div class="card-body">
+      <div class="grid-4 gap12">
+        <div class="theory-box">
+          <h4>Atomic Radius</h4>
+          <p>↓ Increases down a group (more shells)<br>← Decreases across a period (more protons pull electrons closer)</p>
+        </div>
+        <div class="theory-box purple">
+          <h4>Ionization Energy</h4>
+          <p>↑ Increases across a period (harder to remove electrons from more nuclear charge)<br>↓ Decreases down group</p>
+        </div>
+        <div class="theory-box green">
+          <h4>Electronegativity</h4>
+          <p>Highest at F (3.98). Increases across periods, decreases down groups. Related to both IE and EA.</p>
+        </div>
+        <div class="theory-box gold">
+          <h4>Electron Affinity</h4>
+          <p>Energy released when an atom gains an electron. Generally increases across a period; halogens have highest EA.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════ ORBITAL EXPLORER ════════════════ -->
+<div id="page-orbital" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">🔮 Orbital Explorer</div>
+  <div class="section-sub">Visualize atomic orbitals in 3D — shapes, orientations, electron density</div>
+</div>
+<div class="section-content">
+
+  <div class="flex gap12 items-center mb16 wrap">
+    <div class="orbital-grid" id="orbital-selector">
+      <div class="orbital-item selected" onclick="selectOrbital('s','1s')"><div class="o-name">1s</div><div class="o-desc">Spherical</div></div>
+      <div class="orbital-item" onclick="selectOrbital('p','2p')"><div class="o-name">2p</div><div class="o-desc">Dumbbell</div></div>
+      <div class="orbital-item" onclick="selectOrbital('d','3d')"><div class="o-name">3d</div><div class="o-desc">Clover</div></div>
+      <div class="orbital-item" onclick="selectOrbital('f','4f')"><div class="o-name">4f</div><div class="o-desc">Complex</div></div>
+      <div class="orbital-item" onclick="selectOrbital('sp3','sp3')"><div class="o-name">sp³</div><div class="o-desc">Hybrid</div></div>
+      <div class="orbital-item" onclick="selectOrbital('sp2','sp2')"><div class="o-name">sp²</div><div class="o-desc">Hybrid</div></div>
+    </div>
+  </div>
+
+  <div class="grid-2 gap16">
+    <div class="card">
+      <div class="card-header">🌐 3D Orbital Visualization <span style="margin-left:auto;font-size:11px;color:var(--text3);">Drag to rotate</span></div>
+      <div class="canvas-wrap" style="height:380px;">
+        <canvas id="orbital-canvas"></canvas>
+        <div class="canvas-overlay" id="orbital-info-overlay">
+          <div class="info-chip" id="orbital-name-chip">1s orbital</div>
+          <div class="info-chip" id="orbital-nodes-chip">0 radial nodes</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="flex gap8 items-center wrap">
+          <span class="text-xs text2">Opacity:</span>
+          <input type="range" min="10" max="100" value="60" id="orbital-opacity" style="width:100px;" oninput="updateOrbitalOpacity(this.value)">
+          <button class="btn text-xxs" onclick="orbitalRenderer && orbitalRenderer.toggleSpin()">⏯ Rotate</button>
+          <button class="btn text-xxs" onclick="orbitalRenderer && orbitalRenderer.toggleNodes()">Show Nodes</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div class="card-header">📚 Orbital Theory</div>
+        <div class="card-body" id="orbital-theory-panel">
+          <div id="orbital-theory-content"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">⚡ Energy Levels & Nodes</div>
+        <div class="card-body">
+          <div id="orbital-nodes-panel"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- s, p, d, f descriptions -->
+  <div class="mt16 card">
+    <div class="card-header">📖 Orbital Types — Complete Reference</div>
+    <div class="card-body">
+      <div class="grid-4 gap12">
+        <div>
+          <div class="badge badge-s mb8">s orbitals</div>
+          <div class="text-sm text2" style="line-height:1.7;">
+            <strong class="text-accent">l = 0</strong>, spherically symmetric, 1 orientation (m<sub>l</sub> = 0). Node count = n−1 radial nodes. Highest probability near nucleus. Penetrates well, stabilized by nuclear attraction. Each shell has one s orbital.
+          </div>
+        </div>
+        <div>
+          <div class="badge badge-p mb8">p orbitals</div>
+          <div class="text-sm text2" style="line-height:1.7;">
+            <strong style="color:#a78bfa;">l = 1</strong>, dumbbell-shaped with node at nucleus, 3 orientations (p<sub>x</sub>, p<sub>y</sub>, p<sub>z</sub>). Start from n=2. Radial nodes = n−2. Participate in π-bonding when sideways overlap occurs.
+          </div>
+        </div>
+        <div>
+          <div class="badge badge-d mb8">d orbitals</div>
+          <div class="text-sm text2" style="line-height:1.7;">
+            <strong style="color:var(--gold);">l = 2</strong>, 5 orientations with various lobes and toruses. Start from n=3. Essential in transition metal chemistry, crystal field theory. d<sub>z²</sub> has unique torus shape.
+          </div>
+        </div>
+        <div>
+          <div class="badge badge-f mb8">f orbitals</div>
+          <div class="text-sm text2" style="line-height:1.7;">
+            <strong style="color:#f87171;">l = 3</strong>, 7 complex orientations. Start from n=4. Found in lanthanides/actinides. Poorly shielded, responsible for lanthanide contraction and unusual properties.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Radial Distribution -->
+  <div class="mt16 card">
+    <div class="card-header">📊 Radial Distribution Functions</div>
+    <div class="card-body">
+      <div id="rdf-display">
+        <div class="theory-box">
+          <h4>Radial Distribution Function (RDF)</h4>
+          <p>The RDF 4πr²|ψ|² gives the probability of finding an electron in a shell of radius r. Peaks of the RDF correspond to the most probable radial distances. The number of peaks equals n−l. Key insight: 2s penetrates inside 1s shells, explaining why 2s has lower energy than 2p despite same n.</p>
+        </div>
+        <div class="grid-3 gap12 mt12">
+          <div class="card" style="background:var(--bg3);">
+            <div class="card-body" style="padding:12px;">
+              <div class="text-xs text-accent font-bold mb8">1s RDF</div>
+              <div id="rdf-1s-canvas" style="height:80px;background:var(--bg);border-radius:4px;position:relative;overflow:hidden;">
+                <canvas id="rdf-canvas-1s" width="200" height="80" style="width:100%;height:100%;"></canvas>
+              </div>
+              <div class="text-xxs text3 mt8">1 peak, max at a₀ (Bohr radius)</div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--bg3);">
+            <div class="card-body" style="padding:12px;">
+              <div class="text-xs font-bold mb8" style="color:#a78bfa;">2s RDF</div>
+              <div style="height:80px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                <canvas id="rdf-canvas-2s" width="200" height="80" style="width:100%;height:100%;"></canvas>
+              </div>
+              <div class="text-xxs text3 mt8">2 peaks — inner peak shows penetration</div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--bg3);">
+            <div class="card-body" style="padding:12px;">
+              <div class="text-xs font-bold mb8" style="color:var(--gold);">3d RDF</div>
+              <div style="height:80px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                <canvas id="rdf-canvas-3d" width="200" height="80" style="width:100%;height:100%;"></canvas>
+              </div>
+              <div class="text-xxs text3 mt8">1 peak — no penetration, highest energy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════ CHEMICAL BONDING ════════════════ -->
+<div id="page-bonding" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">🔗 Chemical Bonding</div>
+  <div class="section-sub">Ionic, covalent, metallic, VBT, sigma & pi bonds</div>
+</div>
+<div class="section-content">
+
+  <div class="tabs mb16">
+    <button class="tab active" onclick="showBondTab('ionic')">⚡ Ionic</button>
+    <button class="tab" onclick="showBondTab('covalent')">🔗 Covalent</button>
+    <button class="tab" onclick="showBondTab('metallic')">⚙ Metallic</button>
+    <button class="tab" onclick="showBondTab('vbt')">📐 VBT</button>
+    <button class="tab" onclick="showBondTab('coordinate')">→ Coordinate</button>
+    <button class="tab" onclick="showBondTab('hydrogen')">💧 H-Bond</button>
+    <button class="tab" onclick="showBondTab('vdw')">〰 vdW</button>
+  </div>
+
+  <div id="bond-tab-ionic" class="bond-tab-content">
+    <div class="grid-2 gap16">
+      <div class="card">
+        <div class="card-header">⚡ Ionic Bond — 3D Lattice</div>
+        <div class="canvas-wrap" style="height:320px;"><canvas id="ionic-canvas"></canvas></div>
+        <div class="card-body">
+          <div class="flex gap8 wrap mt8">
+            <button class="btn text-xxs selected" onclick="loadIonicLattice('NaCl')">NaCl</button>
+            <button class="btn text-xxs" onclick="loadIonicLattice('CsCl')">CsCl</button>
+            <button class="btn text-xxs" onclick="loadIonicLattice('CaF2')">CaF₂</button>
+            <button class="btn text-xxs" onclick="loadIonicLattice('ZnS')">ZnS</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card">
+          <div class="card-header">📚 Theory</div>
+          <div class="card-body">
+            <div class="theory-box">
+              <h4>Ionic Bonding</h4>
+              <p>Formed by complete electron transfer from metal to non-metal. The electrostatic attraction between oppositely charged ions (cations and anions) constitutes the ionic bond.</p>
+            </div>
+            <div class="theory-box purple mt8">
+              <h4>Lattice Energy (U)</h4>
+              <p><strong>Born-Landé Equation:</strong> U = −(N<sub>A</sub>Mz⁺z⁻e²)/(4πε₀r₀) × (1−1/n)<br>Lattice energy determines stability, melting point, and solubility. Higher charge → higher lattice energy.</p>
+            </div>
+            <div class="theory-box gold mt8">
+              <h4>Born-Haber Cycle</h4>
+              <p>Thermodynamic cycle using Hess's Law to calculate lattice energy indirectly from enthalpy of formation, atomization, ionization, and electron affinity.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">🏗 Crystal Systems</div>
+          <div class="card-body" style="padding:12px;">
+            <table style="font-size:12px;">
+              <tr><th>Compound</th><th>Structure</th><th>CN</th><th>r+/r−</th></tr>
+              <tr><td>NaCl</td><td>Rock salt</td><td>6:6</td><td>0.41−0.73</td></tr>
+              <tr><td>CsCl</td><td>CsCl-type</td><td>8:8</td><td>>0.73</td></tr>
+              <tr><td>ZnS</td><td>Zinc blende</td><td>4:4</td><td>0.22−0.41</td></tr>
+              <tr><td>CaF₂</td><td>Fluorite</td><td>8:4</td><td>>0.73</td></tr>
+              <tr><td>TiO₂</td><td>Rutile</td><td>6:3</td><td>0.41−0.73</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bond-tab-covalent" class="bond-tab-content" style="display:none;">
+    <div class="grid-2 gap16">
+      <div class="card">
+        <div class="card-header">🔗 Covalent Bond — Sigma & Pi</div>
+        <div class="canvas-wrap" style="height:320px;"><canvas id="covalent-canvas"></canvas></div>
+        <div class="card-body">
+          <div class="flex gap8 wrap mt8">
+            <button class="btn text-xxs selected" onclick="loadCovalent('single')">Single</button>
+            <button class="btn text-xxs" onclick="loadCovalent('double')">Double</button>
+            <button class="btn text-xxs" onclick="loadCovalent('triple')">Triple</button>
+            <button class="btn text-xxs" onclick="loadCovalent('sigma')">σ-bond</button>
+            <button class="btn text-xxs" onclick="loadCovalent('pi')">π-bond</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card">
+          <div class="card-header">📚 Bond Types</div>
+          <div class="card-body">
+            <div class="theory-box">
+              <h4>Sigma (σ) Bond</h4>
+              <p>Head-on (end-to-end) overlap of orbitals along the internuclear axis. Cylindrically symmetrical. Allows free rotation. All single bonds are σ. Stronger than π bonds.</p>
+            </div>
+            <div class="theory-box purple mt8">
+              <h4>Pi (π) Bond</h4>
+              <p>Lateral (sideways) overlap of p-orbitals above and below the internuclear axis. No free rotation. Double bonds = 1σ + 1π; Triple = 1σ + 2π.</p>
+            </div>
+            <div class="theory-box green mt8">
+              <h4>Bond Parameters</h4>
+              <p><strong>Bond Length:</strong> Distance at minimum potential energy<br>
+              <strong>Bond Energy:</strong> Energy to break 1 mole of bonds<br>
+              <strong>Bond Order:</strong> (Bonding−Antibonding)/2<br>
+              Higher bond order → shorter, stronger bond</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">📊 Bond Data</div>
+          <div class="card-body" style="padding:12px;">
+            <table style="font-size:12px;">
+              <tr><th>Bond</th><th>Length (pm)</th><th>Energy (kJ/mol)</th></tr>
+              <tr><td>C−C</td><td>154</td><td>347</td></tr>
+              <tr><td>C=C</td><td>134</td><td>614</td></tr>
+              <tr><td>C≡C</td><td>120</td><td>839</td></tr>
+              <tr><td>N≡N</td><td>110</td><td>945</td></tr>
+              <tr><td>O−H</td><td>96</td><td>459</td></tr>
+              <tr><td>N−H</td><td>101</td><td>391</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bond-tab-metallic" class="bond-tab-content" style="display:none;">
+    <div class="grid-2 gap16">
+      <div class="card">
+        <div class="card-header">⚙ Metallic Bonding — Electron Sea</div>
+        <div class="canvas-wrap" style="height:320px;"><canvas id="metallic-canvas"></canvas></div>
+        <div class="card-body">
+          <div class="flex gap8 wrap mt8">
+            <button class="btn text-xxs selected" onclick="loadMetallic('fcc')">FCC</button>
+            <button class="btn text-xxs" onclick="loadMetallic('bcc')">BCC</button>
+            <button class="btn text-xxs" onclick="loadMetallic('hcp')">HCP</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">📚 Metallic Bonding Theory</div>
+        <div class="card-body">
+          <div class="theory-box">
+            <h4>Electron Sea Model</h4>
+            <p>Metal cations arranged in a lattice, surrounded by a "sea" of delocalized free electrons. These mobile electrons account for electrical conductivity, thermal conductivity, and metallic lustre.</p>
+          </div>
+          <div class="theory-box purple mt8">
+            <h4>Band Theory</h4>
+            <p>In a metal crystal, atomic orbitals combine to form continuous bands. The partially filled conduction band allows free electron movement. Insulators have full valence bands with large bandgaps; semiconductors have small bandgaps.</p>
+          </div>
+          <div class="theory-box gold mt8">
+            <h4>Properties Explained</h4>
+            <p>• <strong>Malleability/Ductility:</strong> Layers slide without breaking bonds (non-directional).<br>
+            • <strong>High MP:</strong> Strong delocalized bonding<br>
+            • <strong>Conductivity:</strong> Free electron movement<br>
+            • <strong>Lustre:</strong> Free electrons interact with light</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bond-tab-vbt" class="bond-tab-content" style="display:none;">
+    <div class="theory-box mb16">
+      <h4>Valence Bond Theory (VBT)</h4>
+      <p>A covalent bond forms when half-filled atomic orbitals of two atoms overlap. The greater the overlap, the stronger the bond. The orbitals must have compatible symmetry and similar energies. VBT explains bond directionality and stereochemistry through hybridization.</p>
+    </div>
+    <div class="grid-3 gap14">
+      <div class="card">
+        <div class="card-header">🔀 Overlap Types</div>
+        <div class="card-body">
+          <div class="theory-box">
+            <h4>s-s overlap</h4><p>H₂ molecule: 1s-1s head-on overlap. Pure σ-bond.</p>
+          </div>
+          <div class="theory-box purple mt8">
+            <h4>s-p overlap</h4><p>HF: H 1s with F 2p<sub>z</sub>. Head-on, σ-bond.</p>
+          </div>
+          <div class="theory-box green mt8">
+            <h4>p-p overlap</h4><p>Head-on: σ-bond (F₂, Cl₂). Sideways: π-bond (O₂, N₂).</p>
+          </div>
+          <div class="theory-box gold mt8">
+            <h4>d orbital overlap</h4><p>p-d (expanded octets), d-d bonding in transition metal compounds.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">📊 VBT vs MOT</div>
+        <div class="card-body">
+          <table style="font-size:12px;">
+            <tr><th>Aspect</th><th>VBT</th><th>MOT</th></tr>
+            <tr><td>Electrons</td><td>Localized</td><td>Delocalized</td></tr>
+            <tr><td>Resonance</td><td>Multiple structures</td><td>Single diagram</td></tr>
+            <tr><td>Magnetism</td><td>Poor prediction</td><td>Accurate</td></tr>
+            <tr><td>Bond order</td><td>Whole numbers</td><td>Fractions</td></tr>
+            <tr><td>Excited states</td><td>Difficult</td><td>Easy</td></tr>
+            <tr><td>Simplicity</td><td>Simpler</td><td>Complex</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🧮 Resonance Structures</div>
+        <div class="card-body">
+          <div class="theory-box">
+            <h4>Resonance</h4>
+            <p>When a single Lewis structure cannot represent a molecule accurately, multiple structures (resonance contributors) are drawn. The actual molecule is a hybrid — a weighted average — of all contributors.</p>
+          </div>
+          <div class="mt12">
+            <div class="text-xs text-accent font-bold mb8">Common Resonance Examples</div>
+            <div class="flex flex-col gap8">
+              <div class="card" style="background:var(--bg3);padding:10px;">
+                <div class="font-bold text-xs mb4">Benzene (C₆H₆)</div>
+                <div class="text-xs text2">6 equivalent structures; bonds between single and double</div>
+              </div>
+              <div class="card" style="background:var(--bg3);padding:10px;">
+                <div class="font-bold text-xs mb4">Ozone (O₃)</div>
+                <div class="text-xs text2">2 equivalent structures; bond length 128 pm (between O−O 148 and O=O 121)</div>
+              </div>
+              <div class="card" style="background:var(--bg3);padding:10px;">
+                <div class="font-bold text-xs mb4">NO₃⁻ (Nitrate)</div>
+                <div class="text-xs text2">3 equivalent structures; fractional bond order of 4/3</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bond-tab-coordinate" class="bond-tab-content" style="display:none;">
+    <div class="grid-2 gap16">
+      <div class="card">
+        <div class="card-header">→ Coordinate (Dative) Bond</div>
+        <div class="card-body">
+          <div class="theory-box">
+            <h4>Coordinate Bond</h4>
+            <p>A covalent bond where both electrons come from the same atom (the donor/ligand). The acceptor provides the empty orbital. Once formed, it is indistinguishable from a regular covalent bond. Also called a dative bond.</p>
+          </div>
+          <div class="theory-box purple mt12">
+            <h4>Lewis Acid-Base Concept</h4>
+            <p><strong>Lewis base (donor):</strong> Provides lone pair — e.g., NH₃, H₂O, Cl⁻<br>
+            <strong>Lewis acid (acceptor):</strong> Accepts lone pair — e.g., BF₃, AlCl₃, metal ions</p>
+          </div>
+          <div class="mt12">
+            <div class="text-xs text-accent font-bold mb8">Examples</div>
+            <div class="grid-2 gap8">
+              <div class="card" style="background:var(--bg3);padding:10px;">
+                <div class="font-bold text-xs mb4">NH₄⁺</div>
+                <div class="text-xs text2">N→H⁺: N donates lone pair to H⁺</div>
+              </div>
+              <div class="card" style="background:var(--bg3);padding:10px;">
+                <div class="font-bold text-xs mb4">H₃O⁺</div>
+                <div class="text-xs text2">O→H⁺: O lone pair → H⁺</div>
+              </div>
+              <div class="card" style="background:var(--bg3);padding:10px;">
+                <div class="font-bold text-xs mb4">BF₃·NH₃</div>
+                <div class="text-xs text2">N→B: B is electron deficient acceptor</div>
+              </div>
+              <div class="card" style="background:var(--bg3);padding:10px;">
+                <div class="font-bold text-xs mb4">[Cu(NH₃)₄]²⁺</div>
+                <div class="text-xs text2">4 NH₃ ligands coordinate to Cu²⁺</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🔗 Coordination Compounds</div>
+        <div class="card-body">
+          <div class="theory-box gold">
+            <h4>Werner's Coordination Theory</h4>
+            <p>Central metal ion has <strong>primary valence</strong> (oxidation state) and <strong>secondary valence</strong> (coordination number). Secondary valences are directed in space, leading to specific geometries (octahedral, tetrahedral, square planar).</p>
+          </div>
+          <div class="mt12">
+            <table style="font-size:12px;">
+              <tr><th>Complex</th><th>Geometry</th><th>CN</th></tr>
+              <tr><td>[Cu(NH₃)₄]²⁺</td><td>Square planar</td><td>4</td></tr>
+              <tr><td>[Co(NH₃)₆]³⁺</td><td>Octahedral</td><td>6</td></tr>
+              <tr><td>[Ni(CO)₄]</td><td>Tetrahedral</td><td>4</td></tr>
+              <tr><td>[Ag(NH₃)₂]⁺</td><td>Linear</td><td>2</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bond-tab-hydrogen" class="bond-tab-content" style="display:none;">
+    <div class="grid-2 gap16">
+      <div class="card">
+        <div class="card-header">💧 Hydrogen Bonding</div>
+        <div class="canvas-wrap" style="height:280px;"><canvas id="hbond-canvas"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header">📚 H-Bond Theory</div>
+        <div class="card-body">
+          <div class="theory-box">
+            <h4>Hydrogen Bond</h4>
+            <p>Electrostatic attraction between a partially positive H atom (bonded to F, O, or N) and the lone pair of an electronegative atom (F, O, N) in the same or neighbouring molecule. Strength: 10−40 kJ/mol.</p>
+          </div>
+          <div class="theory-box purple mt8">
+            <h4>Types of H-bonds</h4>
+            <p><strong>Intermolecular:</strong> Between different molecules (water, HF, NH₃). Responsible for high boiling points and surface tension.<br>
+            <strong>Intramolecular:</strong> Within the same molecule (e.g., salicylaldehyde, 2-nitrophenol). Reduces boiling point.</p>
+          </div>
+          <div class="theory-box green mt8">
+            <h4>Anomalous Properties of Water</h4>
+            <p>• High boiling point (100°C vs expected −80°C)<br>
+            • High surface tension and viscosity<br>
+            • Ice is less dense than liquid water<br>
+            • High heat capacity (4.18 J/g·K)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bond-tab-vdw" class="bond-tab-content" style="display:none;">
+    <div class="card">
+      <div class="card-header">〰 Van der Waals Forces</div>
+      <div class="card-body">
+        <div class="grid-3 gap14">
+          <div class="theory-box">
+            <h4>London Dispersion Forces</h4>
+            <p>Temporary induced dipole-induced dipole interactions. Present in ALL molecules. Strongest in large, polarizable molecules (noble gases, alkanes). Increases with molecular size and surface area.</p>
+          </div>
+          <div class="theory-box purple">
+            <h4>Dipole-Dipole</h4>
+            <p>Between polar molecules with permanent dipoles. Molecules align partially positive ends with partially negative ends. Strength depends on magnitude of dipole moment (μ = qd).</p>
+          </div>
+          <div class="theory-box gold">
+            <h4>Ion-Dipole</h4>
+            <p>Between ions and polar molecules. Important in dissolution of ionic compounds. Hydration energy from ion-dipole interactions must exceed lattice energy for dissolution to occur.</p>
+          </div>
+        </div>
+        <div class="theory-box green mt12">
+          <h4>Relative Strengths (Intermolecular vs Intramolecular)</h4>
+          <p>Covalent bonds (~200−1000 kJ/mol) >> H-bonds (10−40 kJ/mol) > Dipole-dipole (5−20 kJ/mol) > London dispersion (0.05−40 kJ/mol). All intermolecular forces are weaker than covalent/ionic bonds, which explains why gases have easily separable molecules while crystals require more energy to break apart.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ════════════════ VSEPR PAGE ════════════════ -->
+<div id="page-vsepr" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">📐 VSEPR Theory</div>
+  <div class="section-sub">Valence Shell Electron Pair Repulsion — predicting molecular geometry</div>
+</div>
+<div class="section-content">
+
+  <div class="theory-box mb16">
+    <h4>VSEPR Principle</h4>
+    <p>Electron pairs (both bonding pairs BP and lone pairs LP) around a central atom arrange themselves to minimize repulsion. Lone pair−lone pair repulsion > lone pair−bonding pair > bonding pair−bonding pair. This drives the geometry away from idealized angles.</p>
+  </div>
+
+  <div class="grid-2 gap16">
+    <div class="card">
+      <div class="card-header">📐 3D Molecular Geometry <span style="margin-left:auto;font-size:11px;color:var(--text3);">Drag to rotate</span></div>
+      <div class="canvas-wrap" style="height:380px;"><canvas id="vsepr-canvas"></canvas></div>
+      <div class="card-body">
+        <div class="flex gap8 items-center flex-wrap mt4">
+          <span class="text-xs text2">Bond Angle:</span>
+          <span class="info-chip" id="vsepr-angle">109.5°</span>
+          <span class="info-chip" id="vsepr-shape-name">Tetrahedral</span>
+          <span class="info-chip" id="vsepr-formula-chip">AX₄</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div class="card-header">🔢 Electron Geometry Selector</div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+            <div class="shape-btn active" onclick="setVSEPR('linear',0)">
+              <div class="font-bold">Linear</div><div class="text-xxs text3">AX₂ — 180°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('trigplanar',0)">
+              <div class="font-bold">Trig. Planar</div><div class="text-xxs text3">AX₃ — 120°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('tetrahedral',0)">
+              <div class="font-bold">Tetrahedral</div><div class="text-xxs text3">AX₄ — 109.5°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('trigbipyramidal',0)">
+              <div class="font-bold">Trig. Bipyr.</div><div class="text-xxs text3">AX₅ — 90/120°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('octahedral',0)">
+              <div class="font-bold">Octahedral</div><div class="text-xxs text3">AX₆ — 90°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('bent',1)">
+              <div class="font-bold">Bent (1 LP)</div><div class="text-xxs text3">SO₂ — 119°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('bent',2)">
+              <div class="font-bold">Bent (2 LP)</div><div class="text-xxs text3">H₂O — 104.5°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('trigpyramidal',1)">
+              <div class="font-bold">Trig. Pyramid</div><div class="text-xxs text3">NH₃ — 107°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('seesaw',1)">
+              <div class="font-bold">Seesaw</div><div class="text-xxs text3">SF₄ — 173/102°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('tshaped',2)">
+              <div class="font-bold">T-shaped</div><div class="text-xxs text3">ClF₃ — 87.5°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('linear_lp',3)">
+              <div class="font-bold">Linear(3LP)</div><div class="text-xxs text3">XeF₂ — 180°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('sq_planar',2)">
+              <div class="font-bold">Sq. Planar</div><div class="text-xxs text3">XeF₄ — 90°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('sq_pyramid',1)">
+              <div class="font-bold">Sq. Pyramid</div><div class="text-xxs text3">BrF₅ — 85°</div>
+            </div>
+            <div class="shape-btn" onclick="setVSEPR('pentbipyramidal',0)">
+              <div class="font-bold">Pent. Bipyr.</div><div class="text-xxs text3">IF₇ — 72/90°</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">📊 VSEPR Data</div>
+        <div class="card-body" style="padding:12px;">
+          <div id="vsepr-info"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt16 card">
+    <div class="card-header">📋 Complete VSEPR Reference Table</div>
+    <div class="card-body" style="padding:0;">
+      <div style="overflow-x:auto;">
+        <table>
+          <tr><th>Formula</th><th>Electron Geometry</th><th>Molecular Shape</th><th>Bond Angle</th><th>Examples</th></tr>
+          <tr><td>AX₂</td><td>Linear</td><td>Linear</td><td>180°</td><td>CO₂, BeCl₂, HCN</td></tr>
+          <tr><td>AX₃</td><td>Trigonal planar</td><td>Trigonal planar</td><td>120°</td><td>BF₃, SO₃, CO₃²⁻</td></tr>
+          <tr><td>AX₂E</td><td>Trigonal planar</td><td>Bent</td><td>~119°</td><td>SO₂, O₃, NO₂⁻</td></tr>
+          <tr><td>AX₄</td><td>Tetrahedral</td><td>Tetrahedral</td><td>109.5°</td><td>CH₄, SiH₄, NH₄⁺</td></tr>
+          <tr><td>AX₃E</td><td>Tetrahedral</td><td>Trigonal pyramidal</td><td>107°</td><td>NH₃, PH₃, PCl₃</td></tr>
+          <tr><td>AX₂E₂</td><td>Tetrahedral</td><td>Bent</td><td>104.5°</td><td>H₂O, H₂S, SCl₂</td></tr>
+          <tr><td>AX₅</td><td>Trigonal bipyramidal</td><td>Trigonal bipyramidal</td><td>90°/120°</td><td>PCl₅, PF₅</td></tr>
+          <tr><td>AX₄E</td><td>Trigonal bipyramidal</td><td>Seesaw</td><td>~173°/102°</td><td>SF₄, IF₄⁺</td></tr>
+          <tr><td>AX₃E₂</td><td>Trigonal bipyramidal</td><td>T-shaped</td><td>~87.5°</td><td>ClF₃, BrF₃</td></tr>
+          <tr><td>AX₂E₃</td><td>Trigonal bipyramidal</td><td>Linear</td><td>180°</td><td>XeF₂, I₃⁻</td></tr>
+          <tr><td>AX₆</td><td>Octahedral</td><td>Octahedral</td><td>90°</td><td>SF₆, [Co(NH₃)₆]³⁺</td></tr>
+          <tr><td>AX₅E</td><td>Octahedral</td><td>Square pyramidal</td><td>~85°</td><td>BrF₅, ClF₅</td></tr>
+          <tr><td>AX₄E₂</td><td>Octahedral</td><td>Square planar</td><td>90°</td><td>XeF₄, [PtCl₄]²⁻</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════ HYBRIDISATION PAGE ════════════════ -->
+<div id="page-hybrid" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">🧬 Hybridisation</div>
+  <div class="section-sub">Orbital mixing, bond angles, and 3D geometry</div>
+</div>
+<div class="section-content">
+
+  <div class="theory-box mb16">
+    <h4>Hybridisation Theory</h4>
+    <p>Hybridisation is the mixing of atomic orbitals to form new equivalent hybrid orbitals for bonding. Proposed by Linus Pauling to explain observed molecular geometry. Hybrid orbitals have specific directional character that explains bond angles in VBT framework.</p>
+  </div>
+
+  <!-- Hybridisation selector -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px;">
+    <div class="hyb-box active" id="hyb-sp" onclick="selectHybrid('sp')">
+      <div class="hyb-type">sp</div>
+      <div class="hyb-angle">180°</div>
+      <div class="hyb-ex">BeCl₂, C₂H₂</div>
+    </div>
+    <div class="hyb-box" id="hyb-sp2" onclick="selectHybrid('sp2')">
+      <div class="hyb-type">sp²</div>
+      <div class="hyb-angle">120°</div>
+      <div class="hyb-ex">BF₃, C₂H₄</div>
+    </div>
+    <div class="hyb-box" id="hyb-sp3" onclick="selectHybrid('sp3')">
+      <div class="hyb-type">sp³</div>
+      <div class="hyb-angle">109.5°</div>
+      <div class="hyb-ex">CH₄, NH₃, H₂O</div>
+    </div>
+    <div class="hyb-box" id="hyb-sp3d" onclick="selectHybrid('sp3d')">
+      <div class="hyb-type">sp³d</div>
+      <div class="hyb-angle">90°/120°</div>
+      <div class="hyb-ex">PCl₅, SF₄</div>
+    </div>
+    <div class="hyb-box" id="hyb-sp3d2" onclick="selectHybrid('sp3d2')">
+      <div class="hyb-type">sp³d²</div>
+      <div class="hyb-angle">90°</div>
+      <div class="hyb-ex">SF₆, [CoF₆]³⁻</div>
+    </div>
+    <div class="hyb-box" id="hyb-dsp2" onclick="selectHybrid('dsp2')">
+      <div class="hyb-type">dsp²</div>
+      <div class="hyb-angle">90°</div>
+      <div class="hyb-ex">[Ni(CN)₄]²⁻</div>
+    </div>
+    <div class="hyb-box" id="hyb-d2sp3" onclick="selectHybrid('d2sp3')">
+      <div class="hyb-type">d²sp³</div>
+      <div class="hyb-angle">90°</div>
+      <div class="hyb-ex">[Co(NH₃)₆]³⁺</div>
+    </div>
+  </div>
+
+  <div class="grid-2 gap16">
+    <div class="card">
+      <div class="card-header">🌐 3D Hybrid Orbital View</div>
+      <div class="canvas-wrap" style="height:360px;"><canvas id="hybrid-canvas"></canvas></div>
+      <div class="card-body">
+        <div class="flex gap8 items-center wrap">
+          <div class="info-chip" id="hyb-type-chip">sp hybridisation</div>
+          <div class="info-chip" id="hyb-angle-chip">180° bond angle</div>
+          <div class="info-chip" id="hyb-orbs-chip">2 hybrid orbitals</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card">
+        <div class="card-header">📚 Theory Details</div>
+        <div class="card-body" id="hyb-theory-panel">
+          <div id="hyb-theory-content"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">📊 Orbital Mixing Diagram</div>
+        <div class="card-body" style="padding:12px;">
+          <div id="hyb-mixing-diagram"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hybridisation Examples -->
+  <div class="mt16 card">
+    <div class="card-header">🧪 Worked Examples — Complete</div>
+    <div class="card-body">
+      <div class="grid-4 gap12" id="hyb-examples-grid"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════ MOT PAGE ════════════════ -->
+<div id="page-mot" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">🌐 Molecular Orbital Theory</div>
+  <div class="section-sub">Linear combination of atomic orbitals, MO diagrams, bond order & magnetism</div>
+</div>
+<div class="section-content">
+
+  <div class="theory-box mb16">
+    <h4>Molecular Orbital Theory (MOT)</h4>
+    <p>In MOT, atomic orbitals combine (LCAO — Linear Combination of Atomic Orbitals) to form molecular orbitals that are delocalized over the entire molecule. Combination of n atomic orbitals gives n molecular orbitals: n/2 bonding (lower energy, stabilizing) and n/2 antibonding (higher energy, destabilizing). Bond Order = (Bonding electrons − Antibonding electrons) / 2.</p>
+  </div>
+
+  <!-- Molecule selector -->
+  <div class="flex gap8 wrap mb16">
+    <div class="text-xs text2 items-center" style="display:flex;align-items:center;">Select molecule:</div>
+    <select id="mo-molecule-select" onchange="loadMODiagram()" style="width:180px;">
+      <option value="H2">H₂</option>
+      <option value="He2">He₂</option>
+      <option value="Li2">Li₂</option>
+      <option value="Be2">Be₂</option>
+      <option value="B2">B₂</option>
+      <option value="C2">C₂</option>
+      <option value="N2" selected>N₂</option>
+      <option value="O2">O₂</option>
+      <option value="F2">F₂</option>
+      <option value="Ne2">Ne₂</option>
+      <option value="NO">NO</option>
+      <option value="CO">CO</option>
+      <option value="HF">HF</option>
+      <option value="O2+">O₂⁺</option>
+      <option value="O2-">O₂⁻</option>
+      <option value="O22-">O₂²⁻</option>
+      <option value="N2+">N₂⁺</option>
+      <option value="NO+">NO⁺</option>
+      <option value="CN-">CN⁻</option>
+    </select>
+    <button class="btn btn-purple" onclick="loadMODiagram()">Generate MO Diagram</button>
+  </div>
+
+  <div class="grid-2 gap16">
+    <!-- MO Diagram SVG -->
+    <div class="card">
+      <div class="card-header">📊 MO Energy Level Diagram</div>
+      <div class="card-body" style="padding:12px;" id="mo-svg-wrap">
+        <div id="mo-svg-container" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <!-- MO Info Panel -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card">
+        <div class="card-header">📋 MO Data</div>
+        <div class="card-body" style="padding:12px;">
+          <div id="mo-data-panel"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🌐 3D MO Visualization</div>
+        <div class="canvas-wrap" style="height:220px;"><canvas id="mo-3d-canvas"></canvas></div>
+        <div class="card-body" style="padding:10px;">
+          <div class="flex gap8 wrap">
+            <button class="btn text-xxs selected" onclick="showMO3D('bonding')">Bonding MO</button>
+            <button class="btn text-xxs" onclick="showMO3D('antibonding')">Antibonding MO</button>
+            <button class="btn text-xxs" onclick="showMO3D('nbonding')">Non-bonding</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOT Theory Sections -->
+  <div class="mt16 grid-3 gap14">
+    <div class="card">
+      <div class="card-header">📐 LCAO Method</div>
+      <div class="card-body">
+        <div class="theory-box">
+          <h4>Linear Combination</h4>
+          <p>ψ(MO) = c₁φ₁ ± c₂φ₂<br><br>
+          Bonding MO: ψ<sub>b</sub> = c₁φ₁ + c₂φ₂ (constructive interference)<br>
+          Antibonding MO: ψ*<sub>a</sub> = c₁φ₁ − c₂φ₂ (destructive interference)</p>
+        </div>
+        <div class="theory-box purple mt8">
+          <h4>Conditions for LCAO</h4>
+          <p>1. Similar energy of combining AOs<br>
+          2. Same symmetry about bonding axis<br>
+          3. Significant overlap of AOs</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">⚡ Bond Order & Stability</div>
+      <div class="card-body">
+        <div class="theory-box green">
+          <h4>Bond Order Formula</h4>
+          <p>BO = (N<sub>b</sub> − N<sub>a</sub>) / 2<br><br>
+          Where N<sub>b</sub> = electrons in bonding MOs<br>
+          N<sub>a</sub> = electrons in antibonding MOs<br><br>
+          BO > 0 → stable molecule<br>
+          BO = 0 → unstable (He₂, Ne₂)</p>
+        </div>
+        <div class="theory-box gold mt8">
+          <h4>Relationship</h4>
+          <p>Higher BO → shorter bond length, higher bond energy, higher dissociation energy</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">🧲 Magnetic Properties</div>
+      <div class="card-body">
+        <div class="theory-box">
+          <h4>Diamagnetic</h4>
+          <p>All electrons paired. No net magnetic moment. Slightly repelled by magnetic field.<br>Examples: N₂, F₂, H₂, CO</p>
+        </div>
+        <div class="theory-box purple mt8">
+          <h4>Paramagnetic</h4>
+          <p>Unpaired electrons present. Net magnetic moment. Attracted to magnetic field.<br>Examples: O₂ (2 unpaired), B₂, NO (1 unpaired)</p>
+        </div>
+        <div class="theory-box green mt8">
+          <h4>MOT predicts O₂ is paramagnetic!</h4>
+          <p>VBT incorrectly predicts O₂ as diamagnetic. MOT correctly shows 2 unpaired electrons in degenerate π* 2p orbitals — a triumph of MOT.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MO Ordering -->
+  <div class="mt16 card">
+    <div class="card-header">📈 MO Energy Ordering for 2nd Period Diatomics</div>
+    <div class="card-body">
+      <div class="grid-2 gap16">
+        <div>
+          <div class="text-xs text-accent font-bold mb8">For Z ≤ 7 (Li₂ to N₂) — s-p mixing significant:</div>
+          <div class="font-mono text-sm text2" style="line-height:2;">
+            σ1s < σ*1s < σ2s < σ*2s < π2p = π2p < σ2p < π*2p = π*2p < σ*2p
+          </div>
+        </div>
+        <div>
+          <div class="text-xs text-accent font-bold mb8">For Z ≥ 8 (O₂ to Ne₂) — s-p mixing less significant:</div>
+          <div class="font-mono text-sm text2" style="line-height:2;">
+            σ1s < σ*1s < σ2s < σ*2s < σ2p < π2p = π2p < π*2p = π*2p < σ*2p
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════ MOLECULE LAB ════════════════ -->
+<div id="page-molecules" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">🧪 Molecule Lab</div>
+  <div class="section-sub">Interactive 3D molecules — rotate, inspect, explore properties</div>
+</div>
+<div class="section-content">
+
+  <!-- Search -->
+  <div class="flex gap12 items-center mb16 wrap">
+    <select id="molecule-category" onchange="filterMolecules()" style="width:160px;">
+      <option value="all">All Categories</option>
+      <option value="diatomic">Diatomic</option>
+      <option value="triatomic">Triatomic</option>
+      <option value="organic">Organic</option>
+      <option value="inorganic">Inorganic</option>
+      <option value="ionic">Ionic/Polar</option>
+      <option value="complex">Complexes</option>
+    </select>
+    <input type="text" id="molecule-search" placeholder="Search molecule (e.g. water, methane, benzene)..." style="flex:1;max-width:400px;" oninput="filterMolecules()">
+    <button class="btn btn-green" onclick="loadMoleculeFromSearch()">🔍 Load</button>
+  </div>
+
+  <!-- Molecule Grid -->
+  <div class="grid-auto gap10 mb16" id="molecule-grid"></div>
+
+  <!-- 3D Viewer & Info -->
+  <div class="grid-2 gap16" id="mol-viewer-panel" style="display:none;">
+    <div class="card">
+      <div class="card-header">🌐 3D Molecule Viewer <span style="margin-left:auto;font-size:11px;color:var(--text3);">Drag to rotate</span></div>
+      <div class="canvas-wrap" style="height:400px;"><canvas id="mol-canvas"></canvas></div>
+      <div class="card-body">
+        <div class="flex gap8 wrap">
+          <button class="btn text-xxs" onclick="molRenderer && molRenderer.toggleBalls()">Ball & Stick</button>
+          <button class="btn text-xxs" onclick="molRenderer && molRenderer.toggleSurface()">Space Fill</button>
+          <button class="btn text-xxs" onclick="molRenderer && molRenderer.toggleSpin()">⏯ Spin</button>
+          <button class="btn text-xxs" onclick="molRenderer && molRenderer.resetView()">Reset</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card">
+        <div class="card-header">📊 Molecule Properties</div>
+        <div class="card-body" id="mol-info-panel" style="padding:12px;"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">🔗 Bonding Description</div>
+        <div class="card-body" id="mol-bond-panel" style="padding:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════ RESOURCES PAGE ════════════════ -->
+<div id="page-resources" style="display:none;flex-direction:column;">
+<div class="section-header">
+  <div class="section-title">📚 Learning Resources</div>
+  <div class="section-sub">Comprehensive reference materials, formulas, and study guides</div>
+</div>
+<div class="section-content">
+  <div class="grid-3 gap14">
+    <div class="card">
+      <div class="card-header">📖 Key Formulas</div>
+      <div class="card-body">
+        <div class="theory-box mb8">
+          <h4>Bohr Model Energy</h4>
+          <p class="font-mono">Eₙ = −13.6 eV × Z²/n²</p>
+        </div>
+        <div class="theory-box purple mb8">
+          <h4>de Broglie Wavelength</h4>
+          <p class="font-mono">λ = h/mv = h/p</p>
+        </div>
+        <div class="theory-box green mb8">
+          <h4>Heisenberg Uncertainty</h4>
+          <p class="font-mono">Δx·Δp ≥ ℏ/2</p>
+        </div>
+        <div class="theory-box gold mb8">
+          <h4>Schrödinger Equation</h4>
+          <p class="font-mono">ĤΨ = EΨ</p>
+        </div>
+        <div class="theory-box mb8">
+          <h4>Born-Landé (Lattice Energy)</h4>
+          <p class="font-mono">U = NA·M·z⁺z⁻e²/4πε₀r₀ × (1-1/n)</p>
+        </div>
+        <div class="theory-box purple mb8">
+          <h4>Bond Order (MOT)</h4>
+          <p class="font-mono">BO = (Nb - Na) / 2</p>
+        </div>
+        <div class="theory-box green">
+          <h4>Dipole Moment</h4>
+          <p class="font-mono">μ = q × d (in Debye, D)</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">📋 Quick Reference</div>
+      <div class="card-body">
+        <div class="text-xs text-accent font-bold mb8">Quantum Numbers Summary</div>
+        <table style="font-size:11px;margin-bottom:12px;">
+          <tr><th>Symbol</th><th>Name</th><th>Values</th><th>Determines</th></tr>
+          <tr><td>n</td><td>Principal</td><td>1,2,3...</td><td>Energy, shell size</td></tr>
+          <tr><td>l</td><td>Azimuthal</td><td>0 to n-1</td><td>Shape, subshell</td></tr>
+          <tr><td>mₗ</td><td>Magnetic</td><td>-l to +l</td><td>Orientation</td></tr>
+          <tr><td>mₛ</td><td>Spin</td><td>±½</td><td>Spin direction</td></tr>
+        </table>
+        <div class="text-xs text-accent font-bold mb8">Orbital Capacities</div>
+        <table style="font-size:11px;margin-bottom:12px;">
+          <tr><th>Subshell</th><th>l</th><th>Orbitals</th><th>Max e⁻</th></tr>
+          <tr><td>s</td><td>0</td><td>1</td><td>2</td></tr>
+          <tr><td>p</td><td>1</td><td>3</td><td>6</td></tr>
+          <tr><td>d</td><td>2</td><td>5</td><td>10</td></tr>
+          <tr><td>f</td><td>3</td><td>7</td><td>14</td></tr>
+        </table>
+        <div class="text-xs text-accent font-bold mb8">Electronegativity Scale (Pauling)</div>
+        <table style="font-size:11px;">
+          <tr><th>Element</th><th>χ</th><th>Element</th><th>χ</th></tr>
+          <tr><td>F</td><td>3.98</td><td>Cl</td><td>3.16</td></tr>
+          <tr><td>O</td><td>3.44</td><td>N</td><td>3.04</td></tr>
+          <tr><td>Br</td><td>2.96</td><td>S</td><td>2.58</td></tr>
+          <tr><td>C</td><td>2.55</td><td>H</td><td>2.20</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">🎓 Study Topics</div>
+      <div class="card-body">
+        <div class="flex flex-col gap8">
+          <div class="resource-item" onclick="showPage('atomic')">
+            <div class="r-icon" style="background:rgba(0,212,255,0.1);">⚛</div>
+            <div><div class="r-title">Atomic Structure</div><div class="r-sub">Bohr model → Quantum mechanical model</div></div>
+          </div>
+          <div class="resource-item" onclick="showPage('orbital')">
+            <div class="r-icon" style="background:rgba(124,58,237,0.15);">🔮</div>
+            <div><div class="r-title">Atomic Orbitals</div><div class="r-sub">Wave functions, nodes, radial distribution</div></div>
+          </div>
+          <div class="resource-item" onclick="showPage('bonding')">
+            <div class="r-icon" style="background:rgba(16,185,129,0.1);">🔗</div>
+            <div><div class="r-title">Chemical Bonding</div><div class="r-sub">Ionic, covalent, metallic, H-bonds</div></div>
+          </div>
+          <div class="resource-item" onclick="showPage('vsepr')">
+            <div class="r-icon" style="background:rgba(245,158,11,0.1);">📐</div>
+            <div><div class="r-title">VSEPR Theory</div><div class="r-sub">Geometry prediction, bond angles</div></div>
+          </div>
+          <div class="resource-item" onclick="showPage('hybrid')">
+            <div class="r-icon" style="background:rgba(239,68,68,0.1);">🧬</div>
+            <div><div class="r-title">Hybridisation</div><div class="r-sub">sp to d²sp³, orbital diagrams</div></div>
+          </div>
+          <div class="resource-item" onclick="showPage('mot')">
+            <div class="r-icon" style="background:rgba(99,102,241,0.2);">🌐</div>
+            <div><div class="r-title">MOT</div><div class="r-sub">MO diagrams, bond order, magnetism</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Important Molecules Reference -->
+  <div class="mt16 card">
+    <div class="card-header">🧪 Important Molecules — Complete Reference</div>
+    <div class="card-body" style="padding:0;">
+      <div style="overflow-x:auto;">
+        <table>
+          <tr><th>Molecule</th><th>Formula</th><th>Shape</th><th>Hybridisation</th><th>Bond Angle</th><th>Dipole Moment</th><th>Key Features</th></tr>
+          <tr><td>Water</td><td>H₂O</td><td>Bent</td><td>sp³</td><td>104.5°</td><td>1.85 D</td><td>2 lone pairs, H-bonding</td></tr>
+          <tr><td>Ammonia</td><td>NH₃</td><td>Trig. pyramidal</td><td>sp³</td><td>107°</td><td>1.47 D</td><td>1 lone pair, Lewis base</td></tr>
+          <tr><td>Methane</td><td>CH₄</td><td>Tetrahedral</td><td>sp³</td><td>109.5°</td><td>0</td><td>Nonpolar, 4 σ-bonds</td></tr>
+          <tr><td>Carbon dioxide</td><td>CO₂</td><td>Linear</td><td>sp</td><td>180°</td><td>0</td><td>2 π-bonds, nonpolar</td></tr>
+          <tr><td>Ethylene</td><td>C₂H₄</td><td>Planar</td><td>sp²</td><td>120°</td><td>0</td><td>1σ+1π C=C bond</td></tr>
+          <tr><td>Acetylene</td><td>C₂H₂</td><td>Linear</td><td>sp</td><td>180°</td><td>0</td><td>1σ+2π C≡C bond</td></tr>
+          <tr><td>Benzene</td><td>C₆H₆</td><td>Planar</td><td>sp²</td><td>120°</td><td>0</td><td>Aromatic, delocalized π</td></tr>
+          <tr><td>PCl₅</td><td>PCl₅</td><td>Trig. bipyr.</td><td>sp³d</td><td>90°/120°</td><td>0</td><td>Expanded octet, axial≠equatorial</td></tr>
+          <tr><td>SF₆</td><td>SF₆</td><td>Octahedral</td><td>sp³d²</td><td>90°</td><td>0</td><td>Hypervalent, highly symmetrical</td></tr>
+          <tr><td>XeF₄</td><td>XeF₄</td><td>Sq. planar</td><td>sp³d²</td><td>90°</td><td>0</td><td>2 lone pairs axial, cancel</td></tr>
+          <tr><td>BF₃</td><td>BF₃</td><td>Trig. planar</td><td>sp²</td><td>120°</td><td>0</td><td>Electron deficient, Lewis acid</td></tr>
+          <tr><td>Ozone</td><td>O₃</td><td>Bent</td><td>sp²</td><td>117°</td><td>0.53 D</td><td>Resonance, 1 LP, bent</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Concepts Glossary -->
+  <div class="mt16 card">
+    <div class="card-header">📖 Key Concepts Glossary</div>
+    <div class="card-body">
+      <div class="grid-3 gap12">
+        <div class="theory-box"><h4>Aufbau Principle</h4><p>Electrons fill lowest energy orbitals first. Order: 1s, 2s, 2p, 3s, 3p, 4s, 3d, 4p... Determined by (n+l) rule.</p></div>
+        <div class="theory-box purple"><h4>Pauli Exclusion</h4><p>Max 2 electrons per orbital, with opposite spins. Consequence: shells have 2n² electrons maximum.</p></div>
+        <div class="theory-box green"><h4>Hund's Rule</h4><p>Degenerate orbitals fill singly before pairing. Parallel spins in half-filled state → maximum multiplicity → extra stability.</p></div>
+        <div class="theory-box gold"><h4>Shielding Effect</h4><p>Inner electrons reduce nuclear attraction felt by outer electrons. Effective nuclear charge Z* = Z − σ (screening constant).</p></div>
+        <div class="theory-box"><h4>Penetration</h4><p>s > p > d > f penetration of inner shells. s electrons closer to nucleus are more stabilized. Explains why 3d fills after 4s.</p></div>
+        <div class="theory-box purple"><h4>Electron Affinity</h4><p>Energy released on gaining an electron. Halogens have highest EA. O and S have anomalously low EA due to electron-electron repulsion in compact orbitals.</p></div>
+        <div class="theory-box green"><h4>Ionisation Energy</h4><p>Energy to remove electron from gaseous atom. Anomalies: Be > B (2s vs 2p), N > O (half-filled 2p stability).</p></div>
+        <div class="theory-box gold"><h4>Polarisability</h4><p>Ease of distorting electron cloud. Increases with size, decreases with charge. Governs London dispersion force strength.</p></div>
+        <div class="theory-box"><h4>Fajan's Rules</h4><p>Ionic compounds gain covalent character when: small highly-charged cation, large highly-charged anion. Covalent character distorts anion electron cloud (polarisation).</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ─────── TOAST ─────── -->
+<div id="toast">Copied!</div>
+
+<script>
+/* ══════════════════════════════════════════
+   ELEMENT DATABASE
+══════════════════════════════════════════ */
+const ELEMENTS = {
+  H:  {name:'Hydrogen',  Z:1,  mass:'1.008',    protons:1,  neutrons:0,  config:'1s¹',          valence:1, en:2.20, ie:1312, radius:53,  ox:'+1,-1',      period:1,group:1, block:'s',color:0xffffff},
+  He: {name:'Helium',    Z:2,  mass:'4.003',    protons:2,  neutrons:2,  config:'1s²',           valence:0, en:'-',  ie:2372, radius:31,  ox:'0',          period:1,group:18,block:'s',color:0xd9ffff},
+  Li: {name:'Lithium',   Z:3,  mass:'6.941',    protons:3,  neutrons:4,  config:'[He] 2s¹',      valence:1, en:0.98, ie:520,  radius:167, ox:'+1',         period:2,group:1, block:'s',color:0xcc80ff},
+  Be: {name:'Beryllium', Z:4,  mass:'9.012',    protons:4,  neutrons:5,  config:'[He] 2s²',      valence:2, en:1.57, ie:900,  radius:112, ox:'+2',         period:2,group:2, block:'s',color:0xc2ff00},
+  B:  {name:'Boron',     Z:5,  mass:'10.811',   protons:5,  neutrons:6,  config:'[He] 2s² 2p¹',  valence:3, en:2.04, ie:801,  radius:87,  ox:'+3',         period:2,group:13,block:'p',color:0xffb5b5},
+  C:  {name:'Carbon',    Z:6,  mass:'12.011',   protons:6,  neutrons:6,  config:'[He] 2s² 2p²',  valence:4, en:2.55, ie:1086, radius:77,  ox:'-4,+2,+4',   period:2,group:14,block:'p',color:0x909090},
+  N:  {name:'Nitrogen',  Z:7,  mass:'14.007',   protons:7,  neutrons:7,  config:'[He] 2s² 2p³',  valence:5, en:3.04, ie:1402, radius:75,  ox:'-3,+3,+5',   period:2,group:15,block:'p',color:0x3050f8},
+  O:  {name:'Oxygen',    Z:8,  mass:'15.999',   protons:8,  neutrons:8,  config:'[He] 2s² 2p⁴',  valence:6, en:3.44, ie:1314, radius:73,  ox:'-2,-1',      period:2,group:16,block:'p',color:0xff0d0d},
+  F:  {name:'Fluorine',  Z:9,  mass:'18.998',   protons:9,  neutrons:10, config:'[He] 2s² 2p⁵',  valence:7, en:3.98, ie:1681, radius:64,  ox:'-1',         period:2,group:17,block:'p',color:0x90e050},
+  Ne: {name:'Neon',      Z:10, mass:'20.180',   protons:10, neutrons:10, config:'[He] 2s² 2p⁶',  valence:0, en:'-',  ie:2081, radius:58,  ox:'0',          period:2,group:18,block:'p',color:0xb3e3f5},
+  Na: {name:'Sodium',    Z:11, mass:'22.990',   protons:11, neutrons:12, config:'[Ne] 3s¹',      valence:1, en:0.93, ie:496,  radius:186, ox:'+1',         period:3,group:1, block:'s',color:0xab5cf2},
+  Mg: {name:'Magnesium', Z:12, mass:'24.305',   protons:12, neutrons:12, config:'[Ne] 3s²',      valence:2, en:1.31, ie:738,  radius:160, ox:'+2',         period:3,group:2, block:'s',color:0x8aff00},
+  Al: {name:'Aluminium', Z:13, mass:'26.982',   protons:13, neutrons:14, config:'[Ne] 3s² 3p¹',  valence:3, en:1.61, ie:578,  radius:143, ox:'+3',         period:3,group:13,block:'p',color:0xbfa6a6},
+  Si: {name:'Silicon',   Z:14, mass:'28.086',   protons:14, neutrons:14, config:'[Ne] 3s² 3p²',  valence:4, en:1.90, ie:786,  radius:118, ox:'-4,+4',      period:3,group:14,block:'p',color:0xf0c8a0},
+  P:  {name:'Phosphorus',Z:15, mass:'30.974',   protons:15, neutrons:16, config:'[Ne] 3s² 3p³',  valence:5, en:2.19, ie:1012, radius:111, ox:'-3,+3,+5',   period:3,group:15,block:'p',color:0xff8000},
+  S:  {name:'Sulfur',    Z:16, mass:'32.065',   protons:16, neutrons:16, config:'[Ne] 3s² 3p⁴',  valence:6, en:2.58, ie:1000, radius:104, ox:'-2,+4,+6',   period:3,group:16,block:'p',color:0xffff30},
+  Cl: {name:'Chlorine',  Z:17, mass:'35.453',   protons:17, neutrons:18, config:'[Ne] 3s² 3p⁵',  valence:7, en:3.16, ie:1251, radius:99,  ox:'-1,+1,+3,+5',period:3,group:17,block:'p',color:0x1ff01f},
+  Ar: {name:'Argon',     Z:18, mass:'39.948',   protons:18, neutrons:22, config:'[Ne] 3s² 3p⁶',  valence:0, en:'-',  ie:1521, radius:71,  ox:'0',          period:3,group:18,block:'p',color:0x80d1e3},
+  K:  {name:'Potassium', Z:19, mass:'39.098',   protons:19, neutrons:20, config:'[Ar] 4s¹',      valence:1, en:0.82, ie:419,  radius:227, ox:'+1',         period:4,group:1, block:'s',color:0x8f40d4},
+  Ca: {name:'Calcium',   Z:20, mass:'40.078',   protons:20, neutrons:20, config:'[Ar] 4s²',      valence:2, en:1.00, ie:590,  radius:197, ox:'+2',         period:4,group:2, block:'s',color:0x3dff00},
+  Fe: {name:'Iron',      Z:26, mass:'55.845',   protons:26, neutrons:30, config:'[Ar] 3d⁶ 4s²',  valence:2, en:1.83, ie:762,  radius:126, ox:'+2,+3',      period:4,group:8, block:'d',color:0xe06633},
+  Cu: {name:'Copper',    Z:29, mass:'63.546',   protons:29, neutrons:35, config:'[Ar] 3d¹⁰ 4s¹', valence:2, en:1.90, ie:745,  radius:128, ox:'+1,+2',      period:4,group:11,block:'d',color:0xc88033},
+  Zn: {name:'Zinc',      Z:30, mass:'65.38',    protons:30, neutrons:35, config:'[Ar] 3d¹⁰ 4s²', valence:2, en:1.65, ie:906,  radius:122, ox:'+2',         period:4,group:12,block:'d',color:0x7d80b0},
+  Br: {name:'Bromine',   Z:35, mass:'79.904',   protons:35, neutrons:45, config:'[Ar] 3d¹⁰ 4s² 4p⁵',valence:7,en:2.96,ie:1140,radius:114,ox:'-1,+1,+5', period:4,group:17,block:'p',color:0xa62929},
+  Kr: {name:'Krypton',   Z:36, mass:'83.798',   protons:36, neutrons:48, config:'[Ar] 3d¹⁰ 4s² 4p⁶',valence:0,en:3.00,ie:1351,radius:88, ox:'0,+2',       period:4,group:18,block:'p',color:0x5cb8d1},
+  I:  {name:'Iodine',    Z:53, mass:'126.904',  protons:53, neutrons:74, config:'[Kr] 4d¹⁰ 5s² 5p⁵',valence:7,en:2.66,ie:1008,radius:133,ox:'-1,+1,+5,+7',period:5,group:17,block:'p',color:0x940094},
+  Xe: {name:'Xenon',     Z:54, mass:'131.293',  protons:54, neutrons:77, config:'[Kr] 4d¹⁰ 5s² 5p⁶',valence:0,en:2.60,ie:1170,radius:108,ox:'0,+2,+4,+6',period:5,group:18,block:'p',color:0x429eb0},
+  Au: {name:'Gold',      Z:79, mass:'196.967',  protons:79, neutrons:118,config:'[Xe] 4f¹⁴ 5d¹⁰ 6s¹',valence:1,en:2.54,ie:890,radius:144,ox:'+1,+3',      period:6,group:11,block:'d',color:0xffd123},
+  Pb: {name:'Lead',      Z:82, mass:'207.2',    protons:82, neutrons:125,config:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²',valence:4,en:2.33,ie:716,radius:175,ox:'+2,+4', period:6,group:14,block:'p',color:0x575961},
+  U:  {name:'Uranium',   Z:92, mass:'238.029',  protons:92, neutrons:146,config:'[Rn] 5f³ 6d¹ 7s²',valence:6,en:1.38,ie:598,radius:156,ox:'+3,+4,+5,+6', period:7,group:3, block:'f',color:0x008fff},
+};
+
+/* ══ SHELL STRUCTURE ══ */
+const SHELLS = {
+  H:[[1]],He:[[2]],Li:[[2,1]],Be:[[2,2]],B:[[2,3]],C:[[2,4]],N:[[2,5]],O:[[2,6]],F:[[2,7]],Ne:[[2,8]],
+  Na:[[2,8,1]],Mg:[[2,8,2]],Al:[[2,8,3]],Si:[[2,8,4]],P:[[2,8,5]],S:[[2,8,6]],Cl:[[2,8,7]],Ar:[[2,8,8]],
+  K:[[2,8,8,1]],Ca:[[2,8,8,2]],Fe:[[2,8,14,2]],Cu:[[2,8,18,1]],Zn:[[2,8,18,2]],
+  Br:[[2,8,18,7]],Kr:[[2,8,18,8]],I:[[2,8,18,18,7]],Xe:[[2,8,18,18,8]],
+  Au:[[2,8,18,32,18,1]],Pb:[[2,8,18,32,18,4]],U:[[2,8,18,32,21,9,2]]
+};
+
+/* ══ MO DATA ══ */
+const MO_DATA = {
+  H2:   {fill:[2,0,0,0,0,0,0,0], nb:2, na:0, extra:''},
+  He2:  {fill:[2,2,0,0,0,0,0,0], nb:2, na:2, extra:''},
+  Li2:  {fill:[2,2,2,0,0,0,0,0], nb:4, na:2, extra:''},
+  Be2:  {fill:[2,2,2,2,0,0,0,0], nb:4, na:4, extra:''},
+  B2:   {fill:[2,2,2,2,1,1,0,0], nb:6, na:4, extra:'π-bond, paramagnetic'},
+  C2:   {fill:[2,2,2,2,2,2,0,0], nb:8, na:4, extra:'Double bond, diamagnetic'},
+  N2:   {fill:[2,2,2,2,2,2,2,0], nb:10,na:4, extra:'Triple bond, diamagnetic'},
+  O2:   {fill:[2,2,2,2,2,2,2,2,1,1], nb:10,na:6, extra:'Paramagnetic — 2 unpaired in π*'},
+  F2:   {fill:[2,2,2,2,2,2,2,2,2,2], nb:10,na:8, extra:'Single bond, diamagnetic'},
+  Ne2:  {fill:[2,2,2,2,2,2,2,2,2,2,2,2], nb:10,na:10,extra:'No bond, unstable'},
+  NO:   {fill:[2,2,2,2,2,2,2,2,1,0], nb:10,na:5, extra:'Paramagnetic, BO=2.5'},
+  CO:   {fill:[2,2,2,2,2,2,2,0,0,0], nb:10,na:4, extra:'Isoelectronic with N₂, BO=3'},
+  HF:   {fill:[2,2,4,0,0,0,0,0], nb:4, na:2, extra:'Polar molecule, σ bond'},
+  'O2+': {fill:[2,2,2,2,2,2,2,2,1,0], nb:10,na:5, extra:'Paramagnetic, BO=2.5'},
+  'O2-': {fill:[2,2,2,2,2,2,2,2,2,1], nb:10,na:7, extra:'Paramagnetic, BO=1.5'},
+  'O22-':{fill:[2,2,2,2,2,2,2,2,2,2], nb:10,na:8, extra:'Peroxide, BO=1'},
+  'N2+': {fill:[2,2,2,2,2,2,1,0], nb:9, na:4, extra:'Paramagnetic, BO=2.5'},
+  'NO+': {fill:[2,2,2,2,2,2,2,0,0,0], nb:10,na:4, extra:'Diamagnetic, BO=3'},
+  'CN-': {fill:[2,2,2,2,2,2,2,0,0,0], nb:10,na:4, extra:'Isoelectronic with N₂, BO=3'},
+};
+
+/* ══════════ THREE.JS RENDERERS ══════════ */
+let atomRenderer=null, orbitalRenderer=null, vsepRenderer=null, hybridRenderer=null, mo3dRenderer=null, molRenderer=null, ionicRenderer=null, covalentRenderer=null, metallicRenderer=null;
+
+class AtomRenderer3D {
+  constructor(canvasId) {
+    this.canvas = document.getElementById(canvasId);
+    if (!this.canvas) return;
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(60, this.canvas.clientWidth/this.canvas.clientHeight||1, 0.1, 1000);
+    this.camera.position.set(0,0,8);
+    this.renderer = new THREE.WebGLRenderer({canvas:this.canvas, antialias:true, alpha:true});
+    this.renderer.setClearColor(0x000000,0);
+    this.resize();
+    this.scene.add(new THREE.AmbientLight(0xffffff,0.5));
+    const dl=new THREE.DirectionalLight(0x00d4ff,1.5); dl.position.set(5,5,5); this.scene.add(dl);
+    const dl2=new THREE.DirectionalLight(0xffffff,0.8); dl2.position.set(-5,-5,3); this.scene.add(dl2);
+    this.spinning=true; this.objects=[]; this.electrons=[];
+    this.mouse={x:0,y:0,down:false}; this.rot={x:0,y:0};
+    this._addEvents();
+    this._render();
+    window.addEventListener('resize',()=>this.resize());
+  }
+  resize() {
+    if(!this.renderer||!this.canvas) return;
+    const w=this.canvas.clientWidth, h=this.canvas.clientHeight;
+    this.renderer.setSize(w,h,false);
+    if(this.camera) { this.camera.aspect=w/h; this.camera.updateProjectionMatrix(); }
+  }
+  _addEvents() {
+    this.canvas.addEventListener('mousedown',e=>{this.mouse.down=true;this.mouse.x=e.clientX;this.mouse.y=e.clientY;});
+    this.canvas.addEventListener('mousemove',e=>{
+      if(!this.mouse.down) return;
+      this.rot.y+=(e.clientX-this.mouse.x)*0.008;
+      this.rot.x+=(e.clientY-this.mouse.y)*0.008;
+      this.mouse.x=e.clientX; this.mouse.y=e.clientY;
+    });
+    window.addEventListener('mouseup',()=>{this.mouse.down=false;});
+    this.canvas.addEventListener('wheel',e=>{this.camera.position.z=Math.max(3,Math.min(20,this.camera.position.z+e.deltaY*0.01));e.preventDefault();},{passive:false});
+    this.canvas.addEventListener('touchstart',e=>{this.mouse.down=true;this.mouse.x=e.touches[0].clientX;this.mouse.y=e.touches[0].clientY;});
+    this.canvas.addEventListener('touchmove',e=>{
+      if(!this.mouse.down) return;
+      this.rot.y+=(e.touches[0].clientX-this.mouse.x)*0.01;
+      this.rot.x+=(e.touches[0].clientY-this.mouse.y)*0.01;
+      this.mouse.x=e.touches[0].clientX; this.mouse.y=e.touches[0].clientY;
+      e.preventDefault();
+    },{passive:false});
+    window.addEventListener('touchend',()=>{this.mouse.down=false;});
+  }
+  clearScene() {
+    this.objects.forEach(o=>this.scene.remove(o));
+    this.objects=[]; this.electrons=[];
+  }
+  buildAtom(sym) {
+    this.clearScene();
+    const el=ELEMENTS[sym]||ELEMENTS['C'];
+    const shells=SHELLS[sym]||[[2,4]];
+    // Nucleus
+    const ng=new THREE.Group();
+    const nc=el.color||0x00d4ff;
+    for(let i=0;i<Math.min(el.protons,12);i++){
+      const s=new THREE.Mesh(new THREE.SphereGeometry(0.18,12,12),new THREE.MeshPhongMaterial({color:0xff4444,emissive:0xff2222,emissiveIntensity:0.3}));
+      const a=(i/Math.max(el.protons,1))*Math.PI*2, r=0.2*Math.sqrt(i);
+      s.position.set(Math.cos(a)*r*0.5,Math.sin(a)*r*0.5,(Math.random()-0.5)*0.3);
+      ng.add(s);
+    }
+    for(let i=0;i<Math.min(el.neutrons,12);i++){
+      const s=new THREE.Mesh(new THREE.SphereGeometry(0.18,12,12),new THREE.MeshPhongMaterial({color:0xaaaaaa,emissive:0x888888,emissiveIntensity:0.2}));
+      const a=(i/Math.max(el.neutrons,1))*Math.PI*2+0.3, r=0.2*Math.sqrt(i)+0.1;
+      s.position.set(Math.cos(a)*r*0.5,Math.sin(a)*r*0.5,(Math.random()-0.5)*0.3);
+      ng.add(s);
+    }
+    const nucGlow=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16),new THREE.MeshPhongMaterial({color:nc,transparent:true,opacity:0.2,emissive:nc,emissiveIntensity:0.4}));
+    ng.add(nucGlow);
+    this.scene.add(ng); this.objects.push(ng);
+    // Shells
+    const flat=shells[0]||[2,4];
+    flat.forEach((count,si)=>{
+      const r=1.5+si*1.5;
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(r,0.02,8,64),new THREE.MeshPhongMaterial({color:0x1e3050,transparent:true,opacity:0.6}));
+      ring.rotation.x=si*0.4; ring.rotation.y=si*0.3;
+      this.scene.add(ring); this.objects.push(ring);
+      for(let i=0;i<count;i++){
+        const angle=(i/count)*Math.PI*2;
+        const em=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,10),new THREE.MeshPhongMaterial({color:nc,emissive:nc,emissiveIntensity:0.6,transparent:true,opacity:0.9}));
+        em.userData={shell:si,idx:i,count,r,ring};
+        this.electrons.push(em);
+        this.scene.add(em); this.objects.push(em);
+      }
+    });
+    this.group=ng;
+  }
+  toggleSpin(){this.spinning=!this.spinning;}
+  toggleNucleus(){/* TODO: toggle nucleus glow */}
+  setView(){this.rot.x=0;this.rot.y=0;}
+  _render(){
+    requestAnimationFrame(()=>this._render());
+    if(this.spinning) this.rot.y+=0.005;
+    if(this.objects[0]) this.objects[0].rotation.y+=0.008;
+    this.electrons.forEach(em=>{
+      const {shell,idx,count,r,ring}=em.userData;
+      const t=Date.now()*0.001;
+      const angle=(idx/count)*Math.PI*2+t*(0.4/(shell+1));
+      const rx=ring.rotation.x, ry=ring.rotation.y;
+      const x=r*Math.cos(angle), z=r*Math.sin(angle);
+      em.position.x=x*Math.cos(ry)-0; em.position.z=x*Math.sin(ry)+z;
+      em.position.y=x*Math.sin(rx)*0.5+z*Math.sin(rx)*0.3;
+    });
+    this.scene.rotation.x=this.rot.x; this.scene.rotation.y=this.rot.y;
+    this.renderer.render(this.scene,this.camera);
+  }
+}
+
+class OrbitalRenderer3D {
+  constructor(canvasId) {
+    this.canvas=document.getElementById(canvasId);
+    if(!this.canvas) return;
+    this.scene=new THREE.Scene();
+    this.camera=new THREE.PerspectiveCamera(60,1,0.1,100);
+    this.camera.position.set(0,0,6);
+    this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,alpha:true});
+    this.renderer.setClearColor(0,0);
+    this.resize();
+    this.scene.add(new THREE.AmbientLight(0xffffff,0.6));
+    const dl=new THREE.DirectionalLight(0xffffff,1); dl.position.set(5,5,5); this.scene.add(dl);
+    this.spinning=true; this.mesh=null;
+    this.rot={x:0,y:0}; this.mouse={x:0,y:0,down:false};
+    this._addEvents();
+    window.addEventListener('resize',()=>this.resize());
+    this._render();
+  }
+  resize(){
+    if(!this.renderer||!this.canvas)return;
+    const w=this.canvas.clientWidth||300,h=this.canvas.clientHeight||300;
+    this.renderer.setSize(w,h,false);
+    this.camera.aspect=w/h; this.camera.updateProjectionMatrix();
+  }
+  _addEvents(){
+    this.canvas.addEventListener('mousedown',e=>{this.mouse.down=true;this.mouse.x=e.clientX;this.mouse.y=e.clientY;});
+    this.canvas.addEventListener('mousemove',e=>{if(!this.mouse.down)return;this.rot.y+=(e.clientX-this.mouse.x)*0.01;this.rot.x+=(e.clientY-this.mouse.y)*0.01;this.mouse.x=e.clientX;this.mouse.y=e.clientY;});
+    window.addEventListener('mouseup',()=>this.mouse.down=false);
+  }
+  showOrbital(type,name,opacity=0.6){
+    if(this.mesh){this.scene.remove(this.mesh);this.mesh=null;}
+    const mat=(color,op=opacity)=>new THREE.MeshPhongMaterial({color,transparent:true,opacity:op,side:THREE.DoubleSide,emissive:color,emissiveIntensity:0.2,shininess:80});
+    const g=new THREE.Group();
+    if(type==='s'){
+      const m=new THREE.Mesh(new THREE.SphereGeometry(1.8,32,32),mat(0x00d4ff));
+      g.add(m);
+    } else if(type==='p'){
+      const lobeGeo=new THREE.SphereGeometry(1,16,16);
+      const l1=new THREE.Mesh(lobeGeo,mat(0x7c3aed)); l1.scale.set(0.7,1.5,0.7); l1.position.y=1.2;
+      const l2=new THREE.Mesh(lobeGeo,mat(0xff6b6b)); l2.scale.set(0.7,1.5,0.7); l2.position.y=-1.2;
+      const l3=new THREE.Mesh(lobeGeo,mat(0x7c3aed,opacity*0.4)); l3.scale.set(1.5,0.7,0.7); l3.position.x=1.2;
+      const l4=new THREE.Mesh(lobeGeo,mat(0xff6b6b,opacity*0.4)); l4.scale.set(1.5,0.7,0.7); l4.position.x=-1.2;
+      const l5=new THREE.Mesh(lobeGeo,mat(0x7c3aed,opacity*0.2)); l5.scale.set(0.7,0.7,1.5); l5.position.z=1.2;
+      const l6=new THREE.Mesh(lobeGeo,mat(0xff6b6b,opacity*0.2)); l6.scale.set(0.7,0.7,1.5); l6.position.z=-1.2;
+      g.add(l1,l2,l3,l4,l5,l6);
+    } else if(type==='d'){
+      // dxy-like: 4 lobes in xy plane
+      for(let i=0;i<4;i++){
+        const a=i*Math.PI/2+Math.PI/4;
+        const m=new THREE.Mesh(new THREE.SphereGeometry(0.9,12,12),mat([0x10b981,0x10b981,0xf59e0b,0xf59e0b][i]));
+        m.scale.set(1,2,1); m.rotation.z=a; m.position.set(Math.cos(a)*1.2,Math.sin(a)*1.2,0);
+        g.add(m);
+      }
+      // dz2-like: donut
+      const torus=new THREE.Mesh(new THREE.TorusGeometry(0.9,0.35,12,32),mat(0xf59e0b,opacity*0.7));
+      g.add(torus);
+    } else if(type==='f'){
+      for(let i=0;i<6;i++){
+        const a=i*Math.PI/3;
+        const m=new THREE.Mesh(new THREE.SphereGeometry(0.7,10,10),mat([0xef4444,0xf97316,0xeab308,0x22c55e,0x06b6d4,0x8b5cf6][i]));
+        m.scale.set(0.8,2.2,0.8); m.rotation.z=a; m.position.set(Math.cos(a)*1.4,Math.sin(a)*1.4,0);
+        g.add(m);
+      }
+      const top=new THREE.Mesh(new THREE.SphereGeometry(0.7,12,12),mat(0xffffff));
+      top.scale.set(0.8,2.2,0.8); top.position.z=1.5; top.rotation.x=Math.PI/2; g.add(top);
+    } else if(type==='sp3'){
+      // 4 tetrahedral lobes
+      const dirs=[[1,1,1],[-1,-1,1],[1,-1,-1],[-1,1,-1]];
+      dirs.forEach((d,i)=>{
+        const m=new THREE.Mesh(new THREE.ConeGeometry(0.55,2,12),mat([0x00d4ff,0x7c3aed,0x10b981,0xf59e0b][i]));
+        const v=new THREE.Vector3(...d).normalize();
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v);
+        m.position.copy(v.multiplyScalar(1.2)); g.add(m);
+      });
+    } else if(type==='sp2'){
+      const dirs=[[1,0,0],[-0.5,0.866,0],[-0.5,-0.866,0]];
+      dirs.forEach((d,i)=>{
+        const m=new THREE.Mesh(new THREE.ConeGeometry(0.55,2,12),mat([0x00d4ff,0x7c3aed,0x10b981][i]));
+        const v=new THREE.Vector3(...d).normalize();
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v);
+        m.position.copy(v.multiplyScalar(1.2)); g.add(m);
+      });
+      // p orbital perpendicular
+      const p=new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12),mat(0xff6b6b,0.3));
+      p.scale.set(0.5,0.5,2.5); g.add(p);
+    }
+    // Axes
+    [[0xff0000,[1,0,0]],[0x00ff00,[0,1,0]],[0x0000ff,[0,0,1]]].forEach(([c,dir])=>{
+      const m=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(...dir).multiplyScalar(2.5)]),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:0.3}));
+      g.add(m);
+    });
+    this.scene.add(g); this.mesh=g;
+  }
+  toggleSpin(){this.spinning=!this.spinning;}
+  toggleNodes(){}
+  _render(){
+    requestAnimationFrame(()=>this._render());
+    if(this.spinning) this.rot.y+=0.005;
+    if(this.mesh){this.mesh.rotation.x=this.rot.x;this.mesh.rotation.y=this.rot.y;}
+    this.renderer.render(this.scene,this.camera);
+  }
+}
+
+class VSEPRRenderer {
+  constructor(canvasId){
+    this.canvas=document.getElementById(canvasId);
+    if(!this.canvas)return;
+    this.scene=new THREE.Scene();
+    this.camera=new THREE.PerspectiveCamera(60,1,0.1,100);
+    this.camera.position.set(0,0,7);
+    this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,alpha:true});
+    this.renderer.setClearColor(0,0);
+    this.resize();
+    this.scene.add(new THREE.AmbientLight(0xffffff,0.6));
+    [[[5,5,5],0xffffff],[[−5,5,5],0x00d4ff]].forEach(([p,c])=>{const d=new THREE.DirectionalLight(c,1);d.position.set(...p);this.scene.add(d);});
+    this.rot={x:0,y:0}; this.mouse={x:0,y:0,down:false}; this.objs=[];
+    this._addEvents(); window.addEventListener('resize',()=>this.resize()); this._render();
+  }
+  resize(){if(!this.renderer||!this.canvas)return;const w=this.canvas.clientWidth||300,h=this.canvas.clientHeight||300;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();}
+  _addEvents(){
+    this.canvas.addEventListener('mousedown',e=>{this.mouse.down=true;this.mouse.x=e.clientX;this.mouse.y=e.clientY;});
+    this.canvas.addEventListener('mousemove',e=>{if(!this.mouse.down)return;this.rot.y+=(e.clientX-this.mouse.x)*0.01;this.rot.x+=(e.clientY-this.mouse.y)*0.01;this.mouse.x=e.clientX;this.mouse.y=e.clientY;});
+    window.addEventListener('mouseup',()=>this.mouse.down=false);
+  }
+  clear(){this.objs.forEach(o=>this.scene.remove(o));this.objs=[];}
+  addAtom(x,y,z,color,r=0.35){const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,16),new THREE.MeshPhongMaterial({color,emissive:color,emissiveIntensity:0.2}));m.position.set(x,y,z);this.scene.add(m);this.objs.push(m);return m;}
+  addBond(a,b){const mid=new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);const dir=new THREE.Vector3().subVectors(b,a);const len=dir.length();const cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,len,8),new THREE.MeshPhongMaterial({color:0x888888}));cyl.position.copy(mid);cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());this.scene.add(cyl);this.objs.push(cyl);}
+  addLP(x,y,z){const m=new THREE.Mesh(new THREE.SphereGeometry(0.25,12,12),new THREE.MeshPhongMaterial({color:0xff6b35,transparent:true,opacity:0.5,emissive:0xff6b35,emissiveIntensity:0.4}));m.position.set(x,y,z);this.scene.add(m);this.objs.push(m);}
+  buildShape(shape,lp){
+    this.clear();
+    const C=new THREE.Vector3(0,0,0);
+    this.addAtom(0,0,0,0x00d4ff,0.45);
+    const R=2.0;
+    const posns={
+      linear:[[0,R,0],[0,-R,0]],
+      trigplanar:[[0,R,0],[R*0.866,-R*0.5,0],[-R*0.866,-R*0.5,0]],
+      tetrahedral:[[0,R,0],[0.943*R,-R/3,0],[-0.471*R,-R/3,0.816*R],[-0.471*R,-R/3,-0.816*R]],
+      trigbipyramidal:[[0,R,0],[0,-R,0],[R,0,0],[-R*0.5,0,R*0.866],[-R*0.5,0,-R*0.866]],
+      octahedral:[[R,0,0],[-R,0,0],[0,R,0],[0,-R,0],[0,0,R],[0,0,-R]],
+      bent:[[R*0.7,R*0.7,0],[-R*0.7,R*0.7,0]],
+      trigpyramidal:[[0,R*0.3,0],[R*0.866,-R*0.5,0],[-R*0.5,-R*0.5,R*0.7]],
+      seesaw:[[0,R,0],[0,-R,0],[R*0.9,0,0],[-R*0.9,0,0]],
+      tshaped:[[R,0,0],[-R,0,0],[0,0,R]],
+      linear_lp:[[0,R,0],[0,-R,0]],
+      sq_planar:[[R,0,0],[-R,0,0],[0,0,R],[0,0,-R]],
+      sq_pyramid:[[R,0,0],[-R,0,0],[0,0,R],[0,0,-R],[0,R,0]],
+      pentbipyramidal:[[0,R,0],[0,-R,0],[R,0,0],[-R*0.5,0,R*0.866],[-R*0.5,0,-R*0.866],[0,0.7*R,0.7*R],[0,0.7*R,-0.7*R]]
+    };
+    const lpPosns={
+      bent:(lp===1)?[[0,-R*0.8,0]]:[[0,-R*0.8,0],[0,0,-R*0.8]],
+      trigpyramidal:[[0,-R*0.8,0]],
+      seesaw:[[0,0.8*R,R*0.6],[0,-R,0]].slice(0,lp),
+      tshaped:[[0,R,0],[0,-R,0]].slice(0,lp),
+      linear_lp:[[R,0,0],[-R*0.5,0,R*0.866],[-R*0.5,0,-R*0.866]].slice(0,lp),
+      sq_planar:[[0,R,0],[0,-R,0]].slice(0,lp),
+      sq_pyramid:[[0,-R,0]].slice(0,lp)
+    };
+    const pts=posns[shape]||posns.linear;
+    pts.forEach(p=>{
+      const pos=new THREE.Vector3(...p);
+      this.addAtom(p[0],p[1],p[2],0xff4444,0.35);
+      this.addBond(C,pos);
+    });
+    const lpts=(lpPosns[shape]||[]).slice(0,lp);
+    lpts.forEach(p=>this.addLP(p[0],p[1],p[2]));
+  }
+  _render(){requestAnimationFrame(()=>this._render());this.scene.rotation.x=this.rot.x;this.scene.rotation.y+=0.003;this.renderer.render(this.scene,this.camera);}
+}
+
+class MoleculeRenderer3D {
+  constructor(canvasId){
+    this.canvas=document.getElementById(canvasId);
+    if(!this.canvas)return;
+    this.scene=new THREE.Scene();
+    this.camera=new THREE.PerspectiveCamera(60,1,0.1,200);
+    this.camera.position.set(0,0,12);
+    this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,alpha:true});
+    this.renderer.setClearColor(0,0);
+    this.resize();
+    this.scene.add(new THREE.AmbientLight(0xffffff,0.5));
+    const dl=new THREE.DirectionalLight(0xffffff,1.2);dl.position.set(5,5,5);this.scene.add(dl);
+    this.spinning=true; this.ballStick=true; this.objs=[]; this.rot={x:0,y:0}; this.mouse={x:0,y:0,down:false};
+    this._addEvents(); window.addEventListener('resize',()=>this.resize()); this._render();
+  }
+  resize(){if(!this.renderer||!this.canvas)return;const w=this.canvas.clientWidth||300,h=this.canvas.clientHeight||300;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();}
+  _addEvents(){
+    this.canvas.addEventListener('mousedown',e=>{this.mouse.down=true;this.mouse.x=e.clientX;this.mouse.y=e.clientY;});
+    this.canvas.addEventListener('mousemove',e=>{if(!this.mouse.down)return;this.rot.y+=(e.clientX-this.mouse.x)*0.01;this.rot.x+=(e.clientY-this.mouse.y)*0.01;this.mouse.x=e.clientX;this.mouse.y=e.clientY;});
+    window.addEventListener('mouseup',()=>this.mouse.down=false);
+    this.canvas.addEventListener('wheel',e=>{this.camera.position.z=Math.max(3,Math.min(30,this.camera.position.z+e.deltaY*0.02));e.preventDefault();},{passive:false});
+  }
+  clear(){this.objs.forEach(o=>this.scene.remove(o));this.objs=[];}
+  addSphere(x,y,z,r,color){const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,16),new THREE.MeshPhongMaterial({color,emissive:color,emissiveIntensity:0.15,shininess:80}));m.position.set(x,y,z);this.scene.add(m);this.objs.push(m);}
+  addCyl(a,b,r=0.12,color=0x888888){const mid=new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);const dir=new THREE.Vector3().subVectors(b,a);const len=dir.length();const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,8),new THREE.MeshPhongMaterial({color}));c.position.copy(mid);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());this.scene.add(c);this.objs.push(c);}
+  buildMol(atoms,bonds){
+    this.clear();
+    atoms.forEach(({pos,color,r})=>this.addSphere(pos[0],pos[1],pos[2],r||0.4,color));
+    bonds.forEach(([i,j])=>{const a=new THREE.Vector3(...atoms[i].pos),b=new THREE.Vector3(...atoms[j].pos);this.addCyl(a,b);});
+  }
+  toggleSpin(){this.spinning=!this.spinning;}
+  toggleBalls(){}
+  toggleSurface(){}
+  resetView(){this.rot.x=0;this.rot.y=0;}
+  _render(){requestAnimationFrame(()=>this._render());if(this.spinning)this.rot.y+=0.004;this.scene.rotation.x=this.rot.x;this.scene.rotation.y=this.rot.y;this.renderer.render(this.scene,this.camera);}
+}
+
+/* ══════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════ */
+const pages=['home','atomic','orbital','bonding','vsepr','hybrid','mot','molecules','resources'];
+function showPage(id){
+  pages.forEach(p=>{
+    const el=document.getElementById('page-'+p);
+    if(el) el.style.display=(p===id)?'flex':'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const btn=Array.from(document.querySelectorAll('.nav-btn')).find(b=>b.textContent.toLowerCase().includes(id.replace('mot','mo').replace('molecules','molecule').replace('hybrid','hybrid').replace('vsepr','vsep').replace('bonding','bond').replace('orbital','orbital').replace('atomic','atom').replace('resources','resource')));
+  if(btn) btn.classList.add('active');
+  // Init renderers
+  setTimeout(()=>{
+    if(id==='atomic') initAtomicPage();
+    if(id==='orbital') initOrbitalPage();
+    if(id==='bonding') initBondingPage();
+    if(id==='vsepr') initVSEPRPage();
+    if(id==='hybrid') initHybridPage();
+    if(id==='mot') initMOTPage();
+    if(id==='molecules') initMolPage();
+  },50);
+}
+
+/* ══ ATOMIC PAGE ══ */
+function initAtomicPage(){
+  if(!atomRenderer){
+    atomRenderer=new AtomRenderer3D('atom-canvas');
+  }
+  loadElement();
+  renderAufbau();
+  renderHundVisual('C');
+}
+
+function loadElement(){
+  const sym=document.getElementById('element-select').value;
+  const el=ELEMENTS[sym];
+  if(!el)return;
+  // Update chips
+  document.getElementById('atom-z-badge').textContent='Z = '+el.Z;
+  document.getElementById('atom-period-badge').textContent='Period '+el.period;
+  document.getElementById('atom-group-badge').textContent='Group '+(el.group||'—');
+  document.getElementById('atom-block-badge').textContent=el.block+'-block';
+  document.getElementById('atom-name-chip').textContent=el.name;
+  document.getElementById('atom-config-chip').textContent=el.config;
+  // Info panel
+  document.getElementById('el-symbol').textContent=sym;
+  document.getElementById('el-z').textContent=el.Z;
+  document.getElementById('el-mass').textContent=el.mass+' u';
+  document.getElementById('el-protons').textContent=el.protons;
+  document.getElementById('el-neutrons').textContent=el.neutrons;
+  document.getElementById('el-electrons').textContent=el.Z;
+  document.getElementById('el-config').textContent=el.config;
+  document.getElementById('el-valence').textContent=el.valence;
+  document.getElementById('el-en').textContent=el.en;
+  document.getElementById('el-ie').textContent=el.ie+' kJ/mol';
+  document.getElementById('el-radius').textContent=el.radius+' pm';
+  document.getElementById('el-ox').textContent=el.ox;
+  // Shell display
+  renderShells(sym);
+  // 3D atom
+  if(atomRenderer) atomRenderer.buildAtom(sym);
+  // QN detail
+  renderQNDetail(el);
+  // Hund
+  renderHundVisual(sym);
+}
+
+function renderShells(sym){
+  const shells=SHELLS[sym]||[[1]];
+  const flat=shells[0];
+  const container=document.getElementById('shell-display');
+  const letters=['K','L','M','N','O','P'];
+  container.innerHTML=flat.map((n,i)=>`
+    <div class="flex items-center gap8 mt8">
+      <div style="width:20px;font-weight:700;color:var(--accent);font-size:12px;">${letters[i]||'?'}</div>
+      <div style="flex:1;height:24px;background:var(--bg3);border-radius:12px;position:relative;overflow:hidden;">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${Math.min((n/(i===0?2:i===1?8:i===2?18:32))*100,100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0.8;border-radius:12px;"></div>
+        <div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;">${n} electrons</div>
+        <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text3);">max ${[2,8,18,32,32][i]||32}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderQNDetail(el){
+  const container=document.getElementById('qn-detail');
+  container.innerHTML=`
+    <div class="theory-box">
+      <h4>For the outermost electron of ${el.name}</h4>
+      <p style="font-family:monospace;line-height:2;">
+        n = ${el.period} (${el.period}${['st','nd','rd'][el.period-1]||'th'} shell)<br>
+        l = ${el.block==='s'?0:el.block==='p'?1:el.block==='d'?2:3} (${el.block}-orbital)<br>
+        m<sub>l</sub> = values from ${el.block==='s'?'0 only':el.block==='p'?'-1,0,+1':el.block==='d'?'-2,-1,0,+1,+2':'-3,-2,-1,0,+1,+2,+3'}<br>
+        m<sub>s</sub> = +½ or −½
+      </p>
+    </div>
+    <div class="theory-box purple">
+      <h4>Electronic configuration</h4>
+      <p class="font-mono">${el.config}</p>
+      <p style="margin-top:6px;">Valence electrons: ${el.valence}<br>Block: ${el.block.toUpperCase()}<br>Period: ${el.period}, Group: ${el.group||'—'}</p>
+    </div>
+  `;
+}
+
+const AUFBAU_ORDER=['1s','2s','2p','3s','3p','4s','3d','4p','5s','4d','5p','6s','4f','5d','6p','7s','5f','6d'];
+function renderAufbau(){
+  const cap={'s':2,'p':6,'d':10,'f':14};
+  const el=document.getElementById('aufbau-diagram');
+  const sym=document.getElementById('element-select').value;
+  const Z=ELEMENTS[sym]?.Z||6;
+  let rem=Z;
+  el.innerHTML=AUFBAU_ORDER.map(orb=>{
+    const n=parseInt(orb[0]);
+    const l=orb[1];
+    const c=cap[l];
+    const filled=Math.min(rem,c); rem-=Math.max(0,filled);
+    if(filled<=0&&rem<0) return '';
+    const pct=Math.round((filled/c)*100);
+    const colors={'s':'var(--accent)','p':'#a78bfa','d':'var(--gold)','f':'#f87171'};
+    return `<div class="energy-level">
+      <div class="energy-orb" style="color:${colors[l]}">${orb}</div>
+      <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${colors[l]};transition:width 0.3s;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);min-width:50px;text-align:right;">${filled}/${c} e⁻</div>
+    </div>`;
+  }).join('');
+}
+
+function renderHundVisual(sym){
+  const el=ELEMENTS[sym];
+  if(!el) return;
+  const container=document.getElementById('hund-visual');
+  // Show 2p filling for visualization
+  const block=el.block;
+  const valence=el.valence;
+  let boxes='';
+  if(block==='p'){
+    const n=valence>4?valence-2:valence; // p electrons only
+    const pe=Math.min(n,6);
+    boxes=`<div class="text-xs text-accent font-bold mb6">p-orbital filling (Hund's Rule):</div>
+    <div class="flex gap6 items-center mb4">
+      ${[0,1,2].map(i=>{
+        const f=Math.min(Math.max(pe-i,0),2);
+        return `<div style="width:44px;height:36px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;gap:2px;">
+          ${f>=1?'<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>':''}
+          ${f===2?'<div style="width:8px;height:8px;border-radius:50%;background:#f87171;"></div>':''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="text-xxs text3">p<sub>x</sub>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p<sub>y</sub>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;p<sub>z</sub></div>`;
+  } else {
+    boxes=`<div class="text-xs text2">Hund's Rule applies to degenerate orbitals (same n, same l). Electrons prefer parallel spins before pairing.</div>`;
+  }
+  container.innerHTML=boxes;
+}
+
+/* ══ ORBITAL PAGE ══ */
+let currentOrbType='s', currentOrbName='1s';
+function initOrbitalPage(){
+  if(!orbitalRenderer){
+    orbitalRenderer=new OrbitalRenderer3D('orbital-canvas');
+  }
+  selectOrbital('s','1s');
+  drawRDFs();
+}
+
+const ORBITAL_THEORY={
+  s:{title:'s Orbitals (l=0)',content:'Spherically symmetric probability distribution. Wavefunction has no angular dependence — Ψ = R(r)·Y(θ,φ) where Y=constant. The number of radial nodes = n−1, total nodes = n−1. Probability of finding electron at nucleus is nonzero for 1s. Penetrates inner shells well. All s orbitals belong to the totally symmetric A₁g representation.',nodes:'Radial nodes: n−1. Angular nodes: 0. Total: n−1.'},
+  p:{title:'p Orbitals (l=1)',content:'Three mutually perpendicular dumbbell-shaped orbitals (p_x, p_y, p_z). Have one angular nodal plane. m_l = -1, 0, +1 corresponding to different spatial orientations. Radial nodes = n−2. Probability zero at nucleus. Participate in σ-bonds (head-on) and π-bonds (lateral overlap). Important in sp, sp², sp³ hybridization.',nodes:'Radial nodes: n−2. Angular nodes: 1 (nodal plane). Total: n−1.'},
+  d:{title:'d Orbitals (l=2)',content:'Five orientations: d_xy, d_xz, d_yz (lobes between axes), d_x²-y² (lobes along x,y axes), d_z² (lobes along z + torus in xy). Two angular nodal planes (or cone for d_z²). Start from n=3. Essential in transition metal chemistry, crystal field splitting, coordination chemistry.',nodes:'Radial nodes: n−3. Angular nodes: 2. Total: n−1.'},
+  f:{title:'f Orbitals (l=3)',content:'Seven orientations, highly complex shapes with 3 angular nodes. Start from n=4. Found in lanthanides and actinides. Poor shielding efficiency → lanthanide contraction. Responsible for unique magnetic and optical properties. Core to understanding heavy element chemistry.',nodes:'Radial nodes: n−4. Angular nodes: 3. Total: n−1.'},
+  sp3:{title:'sp³ Hybrid Orbitals',content:'Four equivalent hybrid orbitals pointing to tetrahedral corners. Each orbital has 25% s character and 75% p character. One large lobe for bonding, one small back lobe. Bond angles 109.5°. Examples: CH₄, NH₃ (with LP), H₂O (with 2 LPs).',nodes:'No nodes (hybridization concept). 4 hybrid orbitals from 1s+3p.'},
+  sp2:{title:'sp² Hybrid Orbitals',content:'Three equivalent hybrid orbitals in a plane at 120°. Each has 33% s and 67% p character. One unhybridized p orbital perpendicular to the plane participates in π-bonding. Examples: BF₃, C₂H₄ (ethylene), benzene.',nodes:'3 hybrid orbitals from 1s+2p. 1 unhybridized p orbital.'},
+};
+
+function selectOrbital(type,name){
+  currentOrbType=type; currentOrbName=name;
+  document.querySelectorAll('.orbital-item').forEach(i=>i.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  if(orbitalRenderer) orbitalRenderer.showOrbital(type,name);
+  document.getElementById('orbital-name-chip').textContent=name+' orbital';
+  const info=ORBITAL_THEORY[type]||ORBITAL_THEORY.s;
+  document.getElementById('orbital-nodes-chip').textContent=info.nodes.split('.')[0];
+  document.getElementById('orbital-theory-content').innerHTML=`
+    <div class="theory-box">
+      <h4>${info.title}</h4>
+      <p>${info.content}</p>
+    </div>`;
+  document.getElementById('orbital-nodes-panel').innerHTML=`
+    <div class="text-xs text-accent font-bold mb8">Node Rules</div>
+    <p class="text-sm text2">${info.nodes}</p>
+    <div class="theory-box purple mt12">
+      <h4>Node Formula</h4>
+      <p>Total nodes = n − 1<br>Angular nodes = l<br>Radial nodes = n − l − 1<br><br>
+      Nodes = regions where ψ = 0 (electron probability = 0)</p>
+    </div>
+  `;
+}
+function updateOrbitalOpacity(v){/* update orbital opacity */}
+
+function drawRDFs(){
+  [['rdf-canvas-1s',1,0,'#00d4ff'],['rdf-canvas-2s',2,0,'#a78bfa'],['rdf-canvas-3d',3,2,'#f59e0b']].forEach(([id,n,l,color])=>{
+    const c=document.getElementById(id);
+    if(!c)return;
+    const ctx=c.getContext('2d');
+    const W=c.width,H=c.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.beginPath();
+    ctx.strokeStyle=color; ctx.lineWidth=2;
+    for(let i=0;i<W;i++){
+      const r=(i/W)*20;
+      let rdf=0;
+      if(n===1&&l===0) rdf=4*r*r*Math.exp(-2*r);
+      else if(n===2&&l===0) rdf=r*r*(2-r)*Math.exp(-r)*0.3;
+      else if(n===3&&l===2) rdf=r*r*(r*r*Math.exp(-2*r/3)*0.08);
+      rdf=Math.max(0,rdf);
+      const y=H-rdf*H*2.5;
+      if(i===0)ctx.moveTo(0,y);else ctx.lineTo(i,Math.max(0,Math.min(H,y)));
+    }
+    ctx.stroke();
+  });
+}
+
+/* ══ BONDING PAGE ══ */
+function initBondingPage(){
+  if(!ionicRenderer){
+    ionicRenderer=new MoleculeRenderer3D('ionic-canvas');
+    loadIonicLattice('NaCl');
+  }
+  if(!covalentRenderer){
+    covalentRenderer=new MoleculeRenderer3D('covalent-canvas');
+    loadCovalent('single');
+  }
+  if(!metallicRenderer){
+    metallicRenderer=new MoleculeRenderer3D('metallic-canvas');
+  }
+}
+
+function showBondTab(id){
+  document.querySelectorAll('.bond-tab-content').forEach(t=>t.style.display='none');
+  document.getElementById('bond-tab-'+id).style.display='block';
+  document.querySelectorAll('#page-bonding .tab').forEach(t=>t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  setTimeout(()=>{
+    if(id==='ionic'&&!ionicRenderer){ionicRenderer=new MoleculeRenderer3D('ionic-canvas');loadIonicLattice('NaCl');}
+    if(id==='covalent'&&!covalentRenderer){covalentRenderer=new MoleculeRenderer3D('covalent-canvas');loadCovalent('single');}
+    if(id==='metallic'&&!metallicRenderer){metallicRenderer=new MoleculeRenderer3D('metallic-canvas');loadMetallic('fcc');}
+    if(id==='hydrogen'){
+      if(!document.getElementById('hbond-canvas').__r){
+        const r=new MoleculeRenderer3D('hbond-canvas');
+        document.getElementById('hbond-canvas').__r=r;
+        // H2O...H2O H-bond
+        r.buildMol([
+          {pos:[-2,0,0],color:0xff0d0d,r:0.5},{pos:[-1.2,0.9,0],color:0xffffff,r:0.3},{pos:[-1.2,-0.9,0],color:0xffffff,r:0.3},
+          {pos:[2,0,0],color:0xff0d0d,r:0.5},{pos:[2.8,0.9,0],color:0xffffff,r:0.3},{pos:[2.8,-0.9,0],color:0xffffff,r:0.3}
+        ],[[0,1],[0,2],[3,4],[3,5]]);
+      }
+    }
+  },50);
+}
+
+const IONIC_STRUCTURES={
+  NaCl:{Na:{color:0xab5cf2,r:0.4},Cl:{color:0x1ff01f,r:0.5},pattern:'rocksalt'},
+  CsCl:{Cs:{color:0x8f40d4,r:0.5},Cl:{color:0x1ff01f,r:0.45},pattern:'cscl'},
+  CaF2:{Ca:{color:0x3dff00,r:0.45},F:{color:0x90e050,r:0.3},pattern:'fluorite'},
+  ZnS:{Zn:{color:0x7d80b0,r:0.35},S:{color:0xffff30,r:0.45},pattern:'zincblende'},
+};
+
+function loadIonicLattice(name){
+  if(!ionicRenderer)return;
+  ionicRenderer.clear();
+  const d=IONIC_STRUCTURES[name];
+  const atoms=[],bonds=[];
+  if(d.pattern==='rocksalt'){
+    for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+      const isA=(x+y+z)%2===0;
+      const {color,r}=isA?d[Object.keys(d)[0]]:d[Object.keys(d)[1]];
+      atoms.push({pos:[x*1.5,y*1.5,z*1.5],color,r});
+    }
+  } else if(d.pattern==='cscl'){
+    for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+      const {color:c1,r:r1}=d[Object.keys(d)[0]];
+      atoms.push({pos:[x*2,y*2,z*2],color:c1,r:r1});
+      if(x<1&&y<1&&z<1){
+        const {color:c2,r:r2}=d[Object.keys(d)[1]];
+        atoms.push({pos:[x*2+1,y*2+1,z*2+1],color:c2,r:r2});
+      }
+    }
+  } else {
+    for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+      const isA=(x+y+z)%2===0;
+      const {color,r}=isA?d[Object.keys(d)[0]]:d[Object.keys(d)[1]];
+      atoms.push({pos:[x*1.6,y*1.6,z*1.6],color,r});
+    }
+  }
+  ionicRenderer.buildMol(atoms,bonds);
+  document.querySelectorAll('#bond-tab-ionic .btn').forEach(b=>{b.classList.remove('selected');if(b.textContent===name)b.classList.add('selected');});
+}
+
+function loadCovalent(type){
+  if(!covalentRenderer)return;
+  covalentRenderer.clear();
+  const atoms=[],bonds=[];
+  if(type==='single'||type==='sigma'){
+    atoms.push({pos:[-1,0,0],color:0x909090,r:0.5},{pos:[1,0,0],color:0x909090,r:0.5});
+    bonds.push([0,1]);
+  } else if(type==='double'){
+    atoms.push({pos:[-1.2,0,0],color:0x909090,r:0.5},{pos:[1.2,0,0],color:0x909090,r:0.5});
+    bonds.push([0,1]);
+  } else if(type==='triple'){
+    atoms.push({pos:[-1,0,0],color:0x3050f8,r:0.45},{pos:[1,0,0],color:0x3050f8,r:0.45});
+    bonds.push([0,1]);
+  } else if(type==='pi'){
+    atoms.push({pos:[-1.3,0,0],color:0x909090,r:0.45},{pos:[1.3,0,0],color:0x909090,r:0.45});
+    bonds.push([0,1]);
+    // Add pi lobes above/below
+    covalentRenderer.addSphere(0,0.7,0,0.4,0x7c3aed);
+    covalentRenderer.addSphere(0,-0.7,0,0.4,0x7c3aed);
+    const a=new THREE.Mesh(new THREE.SphereGeometry(0.3,10,10),new THREE.MeshPhongMaterial({color:0x7c3aed,transparent:true,opacity:0.4}));
+  }
+  covalentRenderer.buildMol(atoms,bonds);
+  document.querySelectorAll('#bond-tab-covalent .btn').forEach(b=>{b.classList.remove('selected');if(b.textContent.toLowerCase()===type.toLowerCase())b.classList.add('selected');});
+}
+
+function loadMetallic(type){
+  if(!metallicRenderer)return;
+  metallicRenderer.clear();
+  const atoms=[],bonds=[];
+  if(type==='fcc'){
+    const fcc=[[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,1,1],[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5],[1,0.5,0.5],[0.5,1,0.5],[0.5,0.5,1]];
+    fcc.forEach(p=>atoms.push({pos:[p[0]*3-1.5,p[1]*3-1.5,p[2]*3-1.5],color:0xffd123,r:0.45}));
+  } else if(type==='bcc'){
+    const bcc=[[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,1,1],[0.5,0.5,0.5]];
+    bcc.forEach(p=>atoms.push({pos:[p[0]*3-1.5,p[1]*3-1.5,p[2]*3-1.5],color:0xe06633,r:0.45}));
+  } else {
+    const hcp=[[0,0,0],[1,0,0],[-0.5,0.866,0],[0.5,0.866,0],[0.5,0.289,0.816],[-0.5,0.866,0.816],[0,0,1.633],[1,0,1.633],[-0.5,0.866,1.633],[0.5,0.866,1.633]];
+    hcp.forEach(p=>atoms.push({pos:[p[0]*2,p[1]*2,p[2]*2],color:0xc88033,r:0.4}));
+  }
+  metallicRenderer.buildMol(atoms,bonds);
+  document.querySelectorAll('#bond-tab-metallic .btn').forEach(b=>{b.classList.remove('selected');if(b.textContent.toLowerCase()===type)b.classList.add('selected');});
+}
+
+/* ══ VSEPR PAGE ══ */
+function initVSEPRPage(){
+  if(!vsepRenderer){
+    vsepRenderer=new VSEPRRenderer('vsepr-canvas');
+  }
+  setVSEPR('linear',0);
+}
+
+const VSEPR_INFO={
+  linear:{shape:'Linear',angle:'180°',formula:'AX₂',examples:'CO₂, BeCl₂, HCN, CS₂',note:'Linear geometry — maximum separation in 1D'},
+  trigplanar:{shape:'Trigonal Planar',angle:'120°',formula:'AX₃',examples:'BF₃, SO₃, NO₃⁻, CO₃²⁻',note:'All atoms in same plane, ideal 120°'},
+  tetrahedral:{shape:'Tetrahedral',angle:'109.5°',formula:'AX₄',examples:'CH₄, SiH₄, CCl₄, NH₄⁺',note:'Perfect symmetry, no distortion'},
+  trigbipyramidal:{shape:'Trig. Bipyramidal',angle:'90°/120°',formula:'AX₅',examples:'PCl₅, PF₅, AsF₅',note:'Axial bonds differ from equatorial'},
+  octahedral:{shape:'Octahedral',angle:'90°',formula:'AX₆',examples:'SF₆, PCl₆⁻, [Co(NH₃)₆]³⁺',note:'Most symmetric — all bonds equivalent'},
+  bent:{shape:'Bent',angle:'~105°',formula:'AX₂E',examples:'SO₂, O₃, NO₂⁻',note:'LP repulsion reduces ideal angle'},
+  trigpyramidal:{shape:'Trigonal Pyramidal',angle:'107°',formula:'AX₃E',examples:'NH₃, PH₃, PCl₃',note:'1 LP compresses bond angle below 109.5°'},
+  seesaw:{shape:'Seesaw',angle:'173°/102°',formula:'AX₄E',examples:'SF₄, IF₄⁺, XeO₂F₂',note:'LP in equatorial position — least repulsion'},
+  tshaped:{shape:'T-shaped',angle:'87.5°',formula:'AX₃E₂',examples:'ClF₃, BrF₃, ICl₃',note:'2 axial LPs compress angles'},
+  linear_lp:{shape:'Linear',angle:'180°',formula:'AX₂E₃',examples:'XeF₂, I₃⁻, ICl₂⁻',note:'3 equatorial LPs — linear molecule'},
+  sq_planar:{shape:'Square Planar',angle:'90°',formula:'AX₄E₂',examples:'XeF₄, [PtCl₄]²⁻, [ICl₄]⁻',note:'2 axial LPs cancel — planar result'},
+  sq_pyramid:{shape:'Square Pyramidal',angle:'~85°',formula:'AX₅E',examples:'BrF₅, ClF₅, [SbCl₅]²⁻',note:'1 axial LP compresses equatorial bonds'},
+  pentbipyramidal:{shape:'Pentagonal Bipyramidal',angle:'72°/90°',formula:'AX₇',examples:'IF₇, ReF₇',note:'Rare — expanded octet in period 4+'},
+};
+
+function setVSEPR(shape,lp){
+  if(vsepRenderer) vsepRenderer.buildShape(shape,lp);
+  const info=VSEPR_INFO[shape]||VSEPR_INFO.linear;
+  document.getElementById('vsepr-angle').textContent=info.angle;
+  document.getElementById('vsepr-shape-name').textContent=info.shape;
+  document.getElementById('vsepr-formula-chip').textContent=info.formula;
+  document.getElementById('vsepr-info').innerHTML=`
+    <div class="info-row"><span class="info-label">Shape</span><span class="info-value accent">${info.shape}</span></div>
+    <div class="info-row"><span class="info-label">Bond Angles</span><span class="info-value">${info.angle}</span></div>
+    <div class="info-row"><span class="info-label">VSEPR Formula</span><span class="info-value">${info.formula}</span></div>
+    <div class="info-row"><span class="info-label">Lone Pairs</span><span class="info-value">${lp}</span></div>
+    <div class="info-row"><span class="info-label">Examples</span><span class="info-value text-xs">${info.examples}</span></div>
+    <div class="theory-box mt8"><h4>Note</h4><p>${info.note}</p></div>
+  `;
+  document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+/* ══ HYBRIDISATION PAGE ══ */
+let hybridCanvasRenderer=null;
+function initHybridPage(){
+  if(!hybridCanvasRenderer){
+    hybridCanvasRenderer=new OrbitalRenderer3D('hybrid-canvas');
+  }
+  selectHybrid('sp');
+  renderHybExamples();
+}
+
+const HYBRID_DATA={
+  sp:{name:'sp',angle:'180°',orbs:2,geom:'Linear',s:1,p:1,d:0,
+    desc:'One s orbital + one p orbital mix to form 2 equivalent sp hybrid orbitals pointing in opposite directions (180°). The remaining 2 p orbitals are available for π-bonding. Found in molecules with triple bonds or cumulated double bonds.',
+    ex:'BeCl₂, CO₂, C₂H₂, HCN, CS₂'},
+  sp2:{name:'sp²',angle:'120°',orbs:3,geom:'Trigonal planar',s:1,p:2,d:0,
+    desc:'One s + two p orbitals form 3 sp² hybrid orbitals in a plane at 120°. The remaining p orbital (perpendicular to the plane) participates in π-bonding. Responsible for the planar structure of alkenes and aromatic compounds.',
+    ex:'BF₃, C₂H₄, SO₃, benzene, NO₃⁻'},
+  sp3:{name:'sp³',angle:'109.5°',orbs:4,geom:'Tetrahedral',s:1,p:3,d:0,
+    desc:'One s + three p orbitals form 4 equivalent sp³ hybrid orbitals pointing to tetrahedral corners. Lone pairs also occupy sp³ orbitals. The most common hybridisation in organic chemistry. VSEPR and hybridization give consistent geometries for these molecules.',
+    ex:'CH₄, NH₃, H₂O, CCl₄, PH₃'},
+  sp3d:{name:'sp³d',angle:'90°/120°',orbs:5,geom:'Trig. bipyramidal',s:1,p:3,d:1,
+    desc:'Requires empty d orbitals (available from Period 3+). One s + three p + one d form 5 orbitals with trigonal bipyramidal geometry. Axial positions (90° to equatorial) are inequivalent to equatorial (120°). Lone pairs prefer equatorial positions (less crowding).',
+    ex:'PCl₅, SF₄, ClF₃, XeF₂'},
+  sp3d2:{name:'sp³d²',angle:'90°',orbs:6,geom:'Octahedral',s:1,p:3,d:2,
+    desc:'One s + three p + two d orbitals form 6 equivalent octahedral hybrid orbitals. All six positions equivalent. Lone pairs create square pyramidal (1 LP) or square planar (2 LP) geometries. Common in coordination chemistry for outer-orbital complexes.',
+    ex:'SF₆, [CoF₆]³⁻, BrF₅, XeF₄'},
+  dsp2:{name:'dsp²',angle:'90°',orbs:4,geom:'Square planar',s:1,p:2,d:1,
+    desc:'Uses inner d orbital (n-1). One d + one s + two p form 4 orbitals in a plane. Characteristic of d⁸ metal complexes with strong-field ligands. Inner orbital complex — more stable than sp³ tetrahedral. Lower energy due to use of (n-1)d orbital.',
+    ex:'[Ni(CN)₄]²⁻, [Pt(NH₃)₄]²⁺, [PdCl₄]²⁻'},
+  d2sp3:{name:'d²sp³',angle:'90°',orbs:6,geom:'Octahedral',s:1,p:3,d:2,
+    desc:'Uses inner (n-1)d orbitals. Two d + one s + three p. Inner orbital octahedral complex — more stable and diamagnetic (if all electrons pair). Characteristic of strong-field ligand complexes (CN⁻, CO). These are called "spin-paired" or "low-spin" complexes.',
+    ex:'[Co(NH₃)₆]³⁺, [Fe(CN)₆]⁴⁻, [Cr(CO)₆]'},
+};
+
+function selectHybrid(h){
+  document.querySelectorAll('.hyb-box').forEach(b=>b.classList.remove('active'));
+  document.getElementById('hyb-'+h)?.classList.add('active');
+  const d=HYBRID_DATA[h];
+  if(!d)return;
+  document.getElementById('hyb-type-chip').textContent=d.name+' hybridisation';
+  document.getElementById('hyb-angle-chip').textContent=d.angle+' bond angle';
+  document.getElementById('hyb-orbs-chip').textContent=d.orbs+' hybrid orbitals';
+  document.getElementById('hyb-theory-content').innerHTML=`
+    <div class="theory-box">
+      <h4>${d.name} Hybridisation — ${d.geom}</h4>
+      <p>${d.desc}</p>
+    </div>
+    <div class="flex gap8 mt12 wrap">
+      <div class="badge badge-s">${d.s} s orbital${d.s>1?'s':''}</div>
+      <div class="badge badge-p">${d.p} p orbital${d.p>1?'s':''}</div>
+      ${d.d?`<div class="badge badge-d">${d.d} d orbital${d.d>1?'s':''}</div>`:''}
+    </div>
+  `;
+  document.getElementById('hyb-mixing-diagram').innerHTML=renderMixingDiagram(d);
+  // Update 3D
+  if(hybridCanvasRenderer){
+    const mapType={sp:'sp2',sp2:'sp2',sp3:'sp3',sp3d:'sp3',sp3d2:'sp3',dsp2:'sp2',d2sp3:'sp3'};
+    hybridCanvasRenderer.showOrbital(mapType[h]||'sp3',h);
+  }
+}
+
+function renderMixingDiagram(d){
+  const rows=[];
+  rows.push(`<div class="text-xs font-bold text-accent mb6">Orbital mixing — ${d.name}</div>`);
+  const src=[];
+  if(d.s) src.push({label:'s',color:'var(--accent)'});
+  for(let i=0;i<d.p;i++) src.push({label:'p',color:'#a78bfa'});
+  for(let i=0;i<d.d;i++) src.push({label:'d',color:'var(--gold)'});
+  rows.push(`<div class="flex gap4 items-center flex-wrap">
+    ${src.map(s=>`<div style="background:${s.color}22;border:1px solid ${s.color};color:${s.color};padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">${s.label}</div>`).join('')}
+    <div class="text-xs text3">→</div>
+    ${Array.from({length:d.orbs},(_,i)=>`<div style="background:rgba(0,212,255,0.1);border:1px solid var(--accent);color:var(--accent);padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">${d.name}</div>`).join('')}
+  </div>`);
+  rows.push(`<div class="text-xxs text3 mt6">Examples: ${d.ex}</div>`);
+  return rows.join('');
+}
+
+function renderHybExamples(){
+  const examples=[
+    {mol:'BeCl₂',hyb:'sp',angle:'180°',shape:'Linear',note:'Be uses sp, 2 bond pairs'},
+    {mol:'BF₃',hyb:'sp²',angle:'120°',shape:'Trig. Planar',note:'B electron deficient, empty p'},
+    {mol:'CH₄',hyb:'sp³',angle:'109.5°',shape:'Tetrahedral',note:'Perfect tetrahedral symmetry'},
+    {mol:'NH₃',hyb:'sp³',angle:'107°',shape:'Trig. Pyramidal',note:'1 LP compresses angles'},
+    {mol:'H₂O',hyb:'sp³',angle:'104.5°',shape:'Bent',note:'2 LPs reduce angle further'},
+    {mol:'C₂H₄',hyb:'sp²',angle:'120°',shape:'Planar',note:'σ+π double bond'},
+    {mol:'C₂H₂',hyb:'sp',angle:'180°',shape:'Linear',note:'1σ+2π triple bond'},
+    {mol:'PCl₅',hyb:'sp³d',angle:'90/120°',shape:'Trig. Bipyr.',note:'Axial≠equatorial'},
+    {mol:'SF₆',hyb:'sp³d²',angle:'90°',shape:'Octahedral',note:'All bonds equivalent'},
+    {mol:'SF₄',hyb:'sp³d',angle:'173/102°',shape:'Seesaw',note:'1 LP at equatorial'},
+    {mol:'XeF₄',hyb:'sp³d²',angle:'90°',shape:'Sq. Planar',note:'2 axial LPs'},
+    {mol:'XeF₂',hyb:'sp³d',angle:'180°',shape:'Linear',note:'3 equatorial LPs'},
+  ];
+  document.getElementById('hyb-examples-grid').innerHTML=examples.map(e=>`
+    <div class="card" style="background:var(--bg3);padding:12px;cursor:pointer;" onclick="showPage('molecules')">
+      <div class="formula mb4">${e.mol}</div>
+      <div class="badge badge-p mb6">${e.hyb}</div>
+      <div class="info-row" style="padding:4px 0;border-color:rgba(30,48,80,0.3);"><span class="info-label" style="font-size:11px;">Shape</span><span class="info-value" style="font-size:12px;">${e.shape}</span></div>
+      <div class="info-row" style="padding:4px 0;border-color:rgba(30,48,80,0.3);"><span class="info-label" style="font-size:11px;">Angle</span><span class="info-value" style="font-size:12px;">${e.angle}</span></div>
+      <div class="text-xxs text3 mt4">${e.note}</div>
+    </div>
+  `).join('');
+}
+
+/* ══ MOT PAGE ══ */
+function initMOTPage(){
+  loadMODiagram();
+  initMO3D();
+}
+
+function initMO3D(){
+  if(!mo3dRenderer){
+    mo3dRenderer=new OrbitalRenderer3D('mo-3d-canvas');
+    showMO3D('bonding');
+  }
+}
+
+function showMO3D(type){
+  if(!mo3dRenderer){initMO3D();return;}
+  document.querySelectorAll('#page-mot .btn').forEach(b=>{if(b.textContent.toLowerCase().includes(type.replace('nbonding','non')))b.classList.add('selected');else b.classList.remove('selected');});
+  if(type==='bonding') mo3dRenderer.showOrbital('s','σ bonding',0.6);
+  else if(type==='antibonding') mo3dRenderer.showOrbital('p','σ* antibonding',0.5);
+  else mo3dRenderer.showOrbital('p','π non-bonding',0.4);
+}
+
+function loadMODiagram(){
+  const mol=document.getElementById('mo-molecule-select').value;
+  const data=MO_DATA[mol];
+  if(!data){renderMOSVG(mol,{fill:[2,2,2,2,2,2,2,0],nb:10,na:4,extra:'N₂-like'});return;}
+  renderMOSVG(mol,data);
+}
+
+function renderMOSVG(mol,data){
+  const {nb,na,extra}=data;
+  const bo=((nb-na)/2).toFixed(1);
+  const isParamagnetic=data.fill.some((f,i)=>f===1);
+  // Generate SVG energy level diagram
+  const W=500,H=520;
+  const labels2p=['σ2p','π2p','π2p','π*2p','π*2p','σ*2p'];
+  const labels=['σ1s','σ*1s','σ2s','σ*2s','σ2p','π2p','π2p','π*2p','π*2p','σ*2p'];
+  const energies=[0.05,0.12,0.22,0.32,0.44,0.52,0.52,0.65,0.65,0.78]; // 0=top
+  // For Z≤7, swap σ2p and π2p
+  const zLow=mol==='B2'||mol==='C2'||mol==='N2'||mol==='N2+'||mol==='Li2'||mol==='Be2';
+
+  const svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:monospace;">
+  <rect width="${W}" height="${H}" fill="none"/>
+  <!-- Left atom label -->
+  <text x="80" y="30" fill="#94a3b8" font-size="13" text-anchor="middle">${mol.replace(/\d+/,'').replace(/[+-]/,'')}</text>
+  <text x="250" y="30" fill="#00d4ff" font-size="14" text-anchor="middle" font-weight="700">Molecular Orbitals — ${mol}</text>
+  <text x="420" y="30" fill="#94a3b8" font-size="13" text-anchor="middle">${mol.replace(/\d+/,'').replace(/[+-]/,'')}</text>
+  ${generateMOLevels(data,W,H,zLow)}
+</svg>`;
+  document.getElementById('mo-svg-container').innerHTML=svg;
+
+  // Data panel
+  document.getElementById('mo-data-panel').innerHTML=`
+    <div class="info-row"><span class="info-label">Molecule</span><span class="info-value accent">${mol}</span></div>
+    <div class="info-row"><span class="info-label">Bonding e⁻</span><span class="info-value">${nb}</span></div>
+    <div class="info-row"><span class="info-label">Antibonding e⁻</span><span class="info-value">${na}</span></div>
+    <div class="info-row"><span class="info-label">Bond Order</span><span class="info-value accent font-bold">${bo}</span></div>
+    <div class="info-row"><span class="info-label">Stable?</span><span class="info-value" style="color:${parseFloat(bo)>0?'var(--accent3)':'#f87171'}">${parseFloat(bo)>0?'Yes':'No (does not exist)'}</span></div>
+    <div class="info-row"><span class="info-label">Magnetism</span><span class="info-value" style="color:${isParamagnetic?'#f59e0b':'#00d4ff'}">${isParamagnetic?'Paramagnetic ↑':'Diamagnetic'}</span></div>
+    ${extra?`<div class="theory-box mt8"><h4>Special Notes</h4><p>${extra}</p></div>`:''}
+    <div class="theory-box purple mt8"><h4>Bond Order = ${bo}</h4><p>${bo==='0'?'Molecule is unstable — does not exist under normal conditions':bo==='0.5'?'Very weak bond — molecule is marginally stable':bo==='1'?'Single bond':bo==='1.5'?'Bond between single and double':bo==='2'?'Double bond':bo==='2.5'?'Bond between double and triple':'Triple bond — very strong, very short'}</p></div>
+  `;
+}
+
+function generateMOLevels(data,W,H,zLow){
+  const fill=data.fill||[];
+  const isHF=fill.length===8;
+  const levels=[
+    {y:60,label:'σ*2p',color:'#f87171',anti:true,side:'center',nbnd:false},
+    {y:110,label:'π*2p',color:'#f87171',anti:true,side:'pair',nbnd:false},
+    {y:175,label:zLow?'σ2p':'π2p',color:'#00d4ff',anti:false,side:zLow?'center':'pair',nbnd:true},
+    {y:220,label:zLow?'π2p':'σ2p',color:'#00d4ff',anti:false,side:zLow?'pair':'center',nbnd:true},
+    {y:285,label:'σ*2s',color:'#f87171',anti:true,side:'center',nbnd:false},
+    {y:335,label:'σ2s',color:'#00d4ff',anti:false,side:'center',nbnd:true},
+    {y:390,label:'σ*1s',color:'#f87171',anti:true,side:'center',nbnd:false},
+    {y:440,label:'σ1s',color:'#00d4ff',anti:false,side:'center',nbnd:true},
+  ];
+
+  // Map fill indices
+  const fillMap={
+    'σ1s':fill[0]||0,'σ*1s':fill[1]||0,'σ2s':fill[2]||0,'σ*2s':fill[3]||0,
+    'σ2p':fill[4]||0,'π2p':fill[5]||0,'π*2p':fill[8]||0,'σ*2p':fill[9]||0,
+  };
+  const fillPair={
+    'π2p':[fill[5]||0,fill[6]||0],
+    'π*2p':[fill[8]||0,fill[9]||0],
+  };
+  if(zLow){fillMap['σ2p']=fill[6]||0;fillMap['π2p']=fill[4]||0;}
+
+  let out='';
+  levels.forEach(lv=>{
+    const cx=250;
+    const lw=80;
+    if(lv.side==='center'){
+      out+=`<line x1="${cx-lw/2}" y1="${lv.y}" x2="${cx+lw/2}" y2="${lv.y}" stroke="${lv.color}" stroke-width="2"/>`;
+      out+=`<text x="${cx-lw/2-8}" y="${lv.y+4}" fill="${lv.color}" font-size="11" text-anchor="end">${lv.label}</text>`;
+      const f=fillMap[lv.label]||0;
+      if(f>=1) out+=`<circle cx="${cx-15}" cy="${lv.y-8}" r="5" fill="${lv.anti?'#f87171':'#00d4ff'}"/>`;
+      if(f===2) out+=`<circle cx="${cx+15}" cy="${lv.y-8}" r="5" fill="${lv.anti?'#ef4444':'#0080ff'}"/>`;
+    } else {
+      const x1=cx-45,x2=cx+15;
+      out+=`<line x1="${x1}" y1="${lv.y}" x2="${x1+60}" y2="${lv.y}" stroke="${lv.color}" stroke-width="2"/>`;
+      out+=`<line x1="${x2}" y1="${lv.y}" x2="${x2+60}" y2="${lv.y}" stroke="${lv.color}" stroke-width="2"/>`;
+      out+=`<text x="${x1-8}" y="${lv.y+4}" fill="${lv.color}" font-size="10" text-anchor="end">${lv.label}</text>`;
+      out+=`<text x="${x2+68}" y="${lv.y+4}" fill="${lv.color}" font-size="10">${lv.label}</text>`;
+      const fp=fillPair[lv.label]||[0,0];
+      if(fp[0]>=1) out+=`<circle cx="${x1+20}" cy="${lv.y-8}" r="5" fill="${lv.anti?'#f87171':'#00d4ff'}"/>`;
+      if(fp[0]===2) out+=`<circle cx="${x1+40}" cy="${lv.y-8}" r="5" fill="${lv.anti?'#ef4444':'#0080ff'}"/>`;
+      if(fp[1]>=1) out+=`<circle cx="${x2+20}" cy="${lv.y-8}" r="5" fill="${lv.anti?'#f87171':'#00d4ff'}"/>`;
+      if(fp[1]===2) out+=`<circle cx="${x2+40}" cy="${lv.y-8}" r="5" fill="${lv.anti?'#ef4444':'#0080ff'}"/>`;
+    }
+    // Atom lines connecting
+    out+=`<line x1="100" y1="${lv.y}" x2="${250-lw/2}" y2="${lv.y}" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4,4"/>`;
+    out+=`<line x1="400" y1="${lv.y}" x2="${250+lw/2}" y2="${lv.y}" stroke="#1e3050" stroke-width="0.5" stroke-dasharray="4,4"/>`;
+    out+=`<line x1="95" y1="${lv.y-5}" x2="105" y2="${lv.y-5}" stroke="${lv.color}66" stroke-width="1.5"/>`;
+    out+=`<line x1="395" y1="${lv.y-5}" x2="405" y2="${lv.y-5}" stroke="${lv.color}66" stroke-width="1.5"/>`;
+  });
+  // Energy arrow
+  out+=`<line x1="30" y1="60" x2="30" y2="460" stroke="#1e3050" stroke-width="1"/>`;
+  out+=`<polygon points="30,50 26,65 34,65" fill="#1e3050"/>`;
+  out+=`<text x="20" y="260" fill="#64748b" font-size="10" text-anchor="middle" transform="rotate(-90,20,260)">Energy →</text>`;
+  return out;
+}
+
+/* ══ MOLECULE LAB ══ */
+const MOLECULES=[
+  {id:'H2',name:'Hydrogen',formula:'H₂',cat:'diatomic',shape:'Linear',hyb:'s',angle:'180°',polar:false,atoms:[{pos:[-0.7,0,0],color:0xffffff,r:0.3},{pos:[0.7,0,0],color:0xffffff,r:0.3}],bonds:[[0,1]],mo:'H2',dipole:'0',desc:'Simplest diatomic. Single σ bond. Bond order = 1.'},
+  {id:'O2',name:'Oxygen',formula:'O₂',cat:'diatomic',shape:'Linear',hyb:'sp²',angle:'180°',polar:false,atoms:[{pos:[-0.6,0,0],color:0xff0d0d,r:0.45},{pos:[0.6,0,0],color:0xff0d0d,r:0.45}],bonds:[[0,1]],mo:'O2',dipole:'0',desc:'Paramagnetic — 2 unpaired electrons in degenerate π* MOs. Bond order = 2.'},
+  {id:'N2',name:'Nitrogen',formula:'N₂',cat:'diatomic',shape:'Linear',hyb:'sp',angle:'180°',polar:false,atoms:[{pos:[-0.55,0,0],color:0x3050f8,r:0.45},{pos:[0.55,0,0],color:0x3050f8,r:0.45}],bonds:[[0,1]],mo:'N2',dipole:'0',desc:'Triple bond (1σ+2π). Most stable diatomic. Bond order = 3. Very high dissociation energy (945 kJ/mol).'},
+  {id:'H2O',name:'Water',formula:'H₂O',cat:'triatomic',shape:'Bent',hyb:'sp³',angle:'104.5°',polar:true,atoms:[{pos:[0,0,0],color:0xff0d0d,r:0.5},{pos:[-0.96,0.93,0],color:0xffffff,r:0.3},{pos:[0.96,0.93,0],color:0xffffff,r:0.3}],bonds:[[0,1],[0,2]],mo:'HF',dipole:'1.85 D',desc:'Bent due to 2 lone pairs on O. Strong H-bond donor/acceptor. Responsible for liquid water properties.'},
+  {id:'NH3',name:'Ammonia',formula:'NH₃',cat:'triatomic',shape:'Trig. pyramidal',hyb:'sp³',angle:'107°',polar:true,atoms:[{pos:[0,0,0],color:0x3050f8,r:0.5},{pos:[0,1.2,0.7],color:0xffffff,r:0.3},{pos:[1.04,-0.6,0.7],color:0xffffff,r:0.3},{pos:[-1.04,-0.6,0.7],color:0xffffff,r:0.3}],bonds:[[0,1],[0,2],[0,3]],mo:null,dipole:'1.47 D',desc:'Trigonal pyramidal — 1 lone pair. Lewis base. Hydrogen bonding. Umbrella inversion exists.'},
+  {id:'CH4',name:'Methane',formula:'CH₄',cat:'organic',shape:'Tetrahedral',hyb:'sp³',angle:'109.5°',polar:false,atoms:[{pos:[0,0,0],color:0x909090,r:0.5},{pos:[1,1,1],color:0xffffff,r:0.3},{pos:[-1,-1,1],color:0xffffff,r:0.3},{pos:[1,-1,-1],color:0xffffff,r:0.3},{pos:[-1,1,-1],color:0xffffff,r:0.3}],bonds:[[0,1],[0,2],[0,3],[0,4]],mo:null,dipole:'0',desc:'Perfect tetrahedral symmetry. sp³ hybridised carbon. Greenhouse gas. Simplest alkane.'},
+  {id:'CO2',name:'Carbon dioxide',formula:'CO₂',cat:'triatomic',shape:'Linear',hyb:'sp',angle:'180°',polar:false,atoms:[{pos:[-1.16,0,0],color:0xff0d0d,r:0.45},{pos:[0,0,0],color:0x909090,r:0.45},{pos:[1.16,0,0],color:0xff0d0d,r:0.45}],bonds:[[0,1],[1,2]],mo:'CO',dipole:'0',desc:'Linear — 2 C=O double bonds (1σ+1π each). Individual bonds polar but vectors cancel → nonpolar. sp hybridised C.'},
+  {id:'BF3',name:'Boron trifluoride',formula:'BF₃',cat:'inorganic',shape:'Trig. planar',hyb:'sp²',angle:'120°',polar:false,atoms:[{pos:[0,0,0],color:0xffb5b5,r:0.4},{pos:[0,1.3,0],color:0x90e050,r:0.4},{pos:[1.126,-0.65,0],color:0x90e050,r:0.4},{pos:[-1.126,-0.65,0],color:0x90e050,r:0.4}],bonds:[[0,1],[0,2],[0,3]],mo:null,dipole:'0',desc:'Electron deficient — Lewis acid. Trigonal planar sp². Empty p orbital accepts electron pairs. Strong Lewis acid.'},
+  {id:'C2H4',name:'Ethylene',formula:'C₂H₄',cat:'organic',shape:'Planar',hyb:'sp²',angle:'120°',polar:false,atoms:[{pos:[-0.67,0,0],color:0x909090,r:0.45},{pos:[0.67,0,0],color:0x909090,r:0.45},{pos:[-1.23,0.93,0],color:0xffffff,r:0.25},{pos:[-1.23,-0.93,0],color:0xffffff,r:0.25},{pos:[1.23,0.93,0],color:0xffffff,r:0.25},{pos:[1.23,-0.93,0],color:0xffffff,r:0.25}],bonds:[[0,1],[0,2],[0,3],[1,4],[1,5]],mo:null,dipole:'0',desc:'Planar molecule. C=C double bond (1σ+1π). Restricted rotation around C=C. sp² carbon.'},
+  {id:'C2H2',name:'Acetylene',formula:'C₂H₂',cat:'organic',shape:'Linear',hyb:'sp',angle:'180°',polar:false,atoms:[{pos:[-1.2,0,0],color:0x909090,r:0.45},{pos:[0,0,0],color:0x909090,r:0.45},{pos:[-2.1,0,0],color:0xffffff,r:0.25},{pos:[1.06,0,0],color:0xffffff,r:0.25}],bonds:[[0,1],[0,2],[1,3]],mo:null,dipole:'0',desc:'Linear molecule. C≡C triple bond (1σ+2π). sp hybridised C. Very reactive alkyne.'},
+  {id:'C6H6',name:'Benzene',formula:'C₆H₆',cat:'organic',shape:'Planar ring',hyb:'sp²',angle:'120°',polar:false,atoms:[
+    {pos:[1.4,0,0],color:0x909090,r:0.45},{pos:[0.7,1.21,0],color:0x909090,r:0.45},
+    {pos:[-0.7,1.21,0],color:0x909090,r:0.45},{pos:[-1.4,0,0],color:0x909090,r:0.45},
+    {pos:[-0.7,-1.21,0],color:0x909090,r:0.45},{pos:[0.7,-1.21,0],color:0x909090,r:0.45},
+    {pos:[2.5,0,0],color:0xffffff,r:0.25},{pos:[1.25,2.17,0],color:0xffffff,r:0.25},
+    {pos:[-1.25,2.17,0],color:0xffffff,r:0.25},{pos:[-2.5,0,0],color:0xffffff,r:0.25},
+    {pos:[-1.25,-2.17,0],color:0xffffff,r:0.25},{pos:[1.25,-2.17,0],color:0xffffff,r:0.25}
+  ],bonds:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[1,7],[2,8],[3,9],[4,10],[5,11]],mo:null,dipole:'0',desc:'Aromatic ring — 6 delocalized π electrons (Hückel 4n+2, n=1). All C-C bonds equal (140 pm). sp² C.'},
+  {id:'PCl5',name:'Phosphorus pentachloride',formula:'PCl₅',cat:'inorganic',shape:'Trig. bipyramidal',hyb:'sp³d',angle:'90°/120°',polar:false,atoms:[{pos:[0,0,0],color:0xff8000,r:0.5},{pos:[1.8,0,0],color:0x1ff01f,r:0.45},{pos:[-0.9,1.56,0],color:0x1ff01f,r:0.45},{pos:[-0.9,-1.56,0],color:0x1ff01f,r:0.45},{pos:[0,0,2.1],color:0x1ff01f,r:0.45},{pos:[0,0,-2.1],color:0x1ff01f,r:0.45}],bonds:[[0,1],[0,2],[0,3],[0,4],[0,5]],mo:null,dipole:'0',desc:'Trigonal bipyramidal. sp³d hybridised P. Axial bonds (90°) longer/weaker than equatorial (120°). Expanded octet.'},
+  {id:'SF6',name:'Sulfur hexafluoride',formula:'SF₆',cat:'inorganic',shape:'Octahedral',hyb:'sp³d²',angle:'90°',polar:false,atoms:[{pos:[0,0,0],color:0xffff30,r:0.5},{pos:[1.56,0,0],color:0x90e050,r:0.4},{pos:[-1.56,0,0],color:0x90e050,r:0.4},{pos:[0,1.56,0],color:0x90e050,r:0.4},{pos:[0,-1.56,0],color:0x90e050,r:0.4},{pos:[0,0,1.56],color:0x90e050,r:0.4},{pos:[0,0,-1.56],color:0x90e050,r:0.4}],bonds:[[0,1],[0,2],[0,3],[0,4],[0,5],[0,6]],mo:null,dipole:'0',desc:'Perfect octahedral. sp³d² hybridised S. Hypervalent. Nonpolar — all F-S-F vectors cancel. Very stable, used as insulator.'},
+  {id:'XeF4',name:'Xenon tetrafluoride',formula:'XeF₄',cat:'inorganic',shape:'Square planar',hyb:'sp³d²',angle:'90°',polar:false,atoms:[{pos:[0,0,0],color:0x429eb0,r:0.5},{pos:[1.95,0,0],color:0x90e050,r:0.4},{pos:[-1.95,0,0],color:0x90e050,r:0.4},{pos:[0,0,1.95],color:0x90e050,r:0.4},{pos:[0,0,-1.95],color:0x90e050,r:0.4}],bonds:[[0,1],[0,2],[0,3],[0,4]],mo:null,dipole:'0',desc:'Square planar — AX₄E₂. 2 lone pairs occupy axial positions in octahedral arrangement → cancel → nonpolar.'},
+  {id:'HCl',name:'Hydrogen chloride',formula:'HCl',cat:'diatomic',shape:'Linear',hyb:'sp³',angle:'180°',polar:true,atoms:[{pos:[-0.64,0,0],color:0xffffff,r:0.3},{pos:[0.64,0,0],color:0x1ff01f,r:0.5}],bonds:[[0,1]],mo:null,dipole:'1.08 D',desc:'Highly polar diatomic. Bond polarity due to large Δχ (3.16−2.20=0.96). Strong acid in water.'},
+  {id:'O3',name:'Ozone',formula:'O₃',cat:'triatomic',shape:'Bent',hyb:'sp²',angle:'117°',polar:true,atoms:[{pos:[0,0,0],color:0xff0d0d,r:0.48},{pos:[-1.1,0.7,0],color:0xff0d0d,r:0.48},{pos:[1.1,0.7,0],color:0xff0d0d,r:0.48}],bonds:[[0,1],[0,2]],mo:null,dipole:'0.53 D',desc:'Bent with resonance. Central O: sp². Bond order 1.5. Absorbs UV radiation (atmospheric protection).'},
+];
+
+function initMolPage(){
+  renderMolGrid(MOLECULES);
+}
+
+function renderMolGrid(mols){
+  const grid=document.getElementById('molecule-grid');
+  grid.innerHTML=mols.map(m=>`
+    <div class="card" style="background:var(--bg3);padding:12px;cursor:pointer;transition:all 0.2s;" 
+         onmouseenter="this.style.borderColor='var(--accent)'" 
+         onmouseleave="this.style.borderColor='var(--border)'"
+         onclick="loadMolecule('${m.id}')">
+      <div class="formula">${m.formula}</div>
+      <div class="text-xxs text2 mt4">${m.name}</div>
+      <div class="flex gap4 mt6 wrap">
+        <div class="badge" style="background:rgba(124,58,237,0.15);color:#a78bfa;font-size:10px;">${m.hyb}</div>
+        ${m.polar?'<div class="badge" style="background:rgba(245,158,11,0.1);color:var(--gold);font-size:10px;">Polar</div>':''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterMolecules(){
+  const cat=document.getElementById('molecule-category').value;
+  const q=document.getElementById('molecule-search').value.toLowerCase();
+  const filtered=MOLECULES.filter(m=>{
+    const catMatch=cat==='all'||m.cat===cat;
+    const qMatch=!q||m.name.toLowerCase().includes(q)||m.formula.toLowerCase().includes(q)||m.id.toLowerCase().includes(q);
+    return catMatch&&qMatch;
+  });
+  renderMolGrid(filtered);
+}
+
+function loadMoleculeFromSearch(){
+  const q=document.getElementById('molecule-search').value.toLowerCase();
+  const found=MOLECULES.find(m=>m.name.toLowerCase().includes(q)||m.formula.toLowerCase().includes(q)||m.id.toLowerCase().includes(q));
+  if(found) loadMolecule(found.id);
+}
+
+function loadMolecule(id){
+  const m=MOLECULES.find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('mol-viewer-panel').style.display='grid';
+  if(!molRenderer) molRenderer=new MoleculeRenderer3D('mol-canvas');
+  molRenderer.buildMol(m.atoms,m.bonds);
+  document.getElementById('mol-info-panel').innerHTML=`
+    <div class="info-row"><span class="info-label">Formula</span><span class="info-value accent formula">${m.formula}</span></div>
+    <div class="info-row"><span class="info-label">Geometry</span><span class="info-value">${m.shape}</span></div>
+    <div class="info-row"><span class="info-label">Hybridisation</span><span class="info-value">${m.hyb}</span></div>
+    <div class="info-row"><span class="info-label">Bond Angle</span><span class="info-value">${m.angle}</span></div>
+    <div class="info-row"><span class="info-label">Polarity</span><span class="info-value" style="color:${m.polar?'var(--gold)':'var(--accent3)'}">${m.polar?'Polar':'Nonpolar'}</span></div>
+    <div class="info-row"><span class="info-label">Dipole Moment</span><span class="info-value">${m.dipole}</span></div>
+    ${m.mo?`<div class="info-row"><span class="info-label">MO Data</span><span class="info-value" onclick="showPage('mot');setTimeout(()=>{document.getElementById('mo-molecule-select').value='${m.mo}';loadMODiagram();},200)" style="cursor:pointer;color:var(--accent);">View MO Diagram →</span></div>`:''}
+  `;
+  document.getElementById('mol-bond-panel').innerHTML=`
+    <div class="theory-box"><h4>Bonding Description</h4><p>${m.desc}</p></div>
+  `;
+  document.getElementById('mol-viewer-panel').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+/* ══ HERO BG ANIMATION ══ */
+function initHeroBg(){
+  const canvas=document.getElementById('hero-bg-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const particles=[];
+  for(let i=0;i<60;i++) particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*3+1,vx:(Math.random()-0.5)*0.5,vy:(Math.random()-0.5)*0.5,color:Math.random()>0.5?'#00d4ff':'#7c3aed'});
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.color+'66'; ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>canvas.width) p.vx*=-1;
+      if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* ══ INIT ══ */
+window.addEventListener('load',()=>{
+  initHeroBg();
+  // Page-specific init on nav click
+});
+
+</script>
 </body>
 </html>
+  <script src="https://cdnjs.cloudfare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="script.js"></script>
