@@ -1,193 +1,106 @@
 /////////////////////////////////////////////////////
-// ATOM SIMULATION CORE (STABLE ARCHITECTURE)
+// ATOMLAB — CLEAN SINGLE ENGINE (FINAL FIX)
 /////////////////////////////////////////////////////
 
 // ===============================
-// DATA LAYER (TRUTH SOURCE)
+// GUARANTEED ELEMENT DATABASE (ONLY ONE)
 // ===============================
-const PERIODIC_TABLE = [
-"H","He","Li","Be","B","C","N","O","F","Ne",
-"Na","Mg","Al","Si","P","S","Cl","Ar",
-"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
-"Ga","Ge","As","Se","Br","Kr",
-"Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
-"In","Sn","Sb","Te","I","Xe",
-"Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
-"Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
-"Tl","Pb","Bi","Po","At","Rn",
-"Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
-"Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
-];
-
-// ===============================
-// STATE (SINGLE SOURCE)
-// ===============================
-const STATE = {
-  Z: 1,
-  symbol: "H"
+const ELEMENTS = {
+  H: {Z:1}, He:{Z:2}, Li:{Z:3}, Be:{Z:4}, B:{Z:5}, C:{Z:6}, N:{Z:7}, O:{Z:8}, F:{Z:9}, Ne:{Z:10},
+  Na:{Z:11}, Mg:{Z:12}, Al:{Z:13}, Si:{Z:14}, P:{Z:15}, S:{Z:16}, Cl:{Z:17}, Ar:{Z:18},
+  K:{Z:19}, Ca:{Z:20}, Sc:{Z:21}, Ti:{Z:22}, V:{Z:23}, Cr:{Z:24}, Mn:{Z:25}, Fe:{Z:26}, Co:{Z:27}, Ni:{Z:28}, Cu:{Z:29}, Zn:{Z:30},
+  Ga:{Z:31}, Ge:{Z:32}, As:{Z:33}, Se:{Z:34}, Br:{Z:35}, Kr:{Z:36},
+  Rb:{Z:37}, Sr:{Z:38}, Y:{Z:39}, Zr:{Z:40}, Nb:{Z:41}, Mo:{Z:42}, Tc:{Z:43}, Ru:{Z:44}, Rh:{Z:45}, Pd:{Z:46}, Ag:{Z:47}, Cd:{Z:48},
+  In:{Z:49}, Sn:{Z:50}, Sb:{Z:51}, Te:{Z:52}, I:{Z:53}, Xe:{Z:54},
+  Cs:{Z:55}, Ba:{Z:56}, La:{Z:57}, Ce:{Z:58}, Pr:{Z:59}, Nd:{Z:60}, Pm:{Z:61}, Sm:{Z:62}, Eu:{Z:63}, Gd:{Z:64}, Tb:{Z:65}, Dy:{Z:66},
+  Ho:{Z:67}, Er:{Z:68}, Tm:{Z:69}, Yb:{Z:70}, Lu:{Z:71},
+  Hf:{Z:72}, Ta:{Z:73}, W:{Z:74}, Re:{Z:75}, Os:{Z:76}, Ir:{Z:77}, Pt:{Z:78}, Au:{Z:79}, Hg:{Z:80},
+  Tl:{Z:81}, Pb:{Z:82}, Bi:{Z:83}, Po:{Z:84}, At:{Z:85}, Rn:{Z:86},
+  Fr:{Z:87}, Ra:{Z:88}, Ac:{Z:89}, Th:{Z:90}, Pa:{Z:91}, U:{Z:92}, Np:{Z:93}, Pu:{Z:94}, Am:{Z:95}, Cm:{Z:96}, Bk:{Z:97}, Cf:{Z:98},
+  Es:{Z:99}, Fm:{Z:100}, Md:{Z:101}, No:{Z:102}, Lr:{Z:103},
+  Rf:{Z:104}, Db:{Z:105}, Sg:{Z:106}, Bh:{Z:107}, Hs:{Z:108}, Mt:{Z:109}, Ds:{Z:110}, Rg:{Z:111}, Cn:{Z:112},
+  Nh:{Z:113}, Fl:{Z:114}, Mc:{Z:115}, Lv:{Z:116}, Ts:{Z:117}, Og:{Z:118}
 };
 
 // ===============================
-// SAFE DOM ACCESS
+// SAFE GET ELEMENT
 // ===============================
-function $(id) {
-  return document.getElementById(id);
-}
-
-function set(id, val) {
-  const el = $(id);
-  if (el) el.innerText = val;
+function getElement() {
+  const sel = document.getElementById("element-select");
+  const sym = sel?.value || "H";
+  return ELEMENTS[sym] || ELEMENTS["H"];
 }
 
 // ===============================
-// ELEMENT RESOLVER (NO FAIL MODE)
-// ===============================
-function resolveElement() {
-  const sel = $("element-select");
-  if (!sel) return { Z: 1, symbol: "H" };
-
-  const index = sel.selectedIndex;
-  const value = sel.value;
-
-  // Case 1: numeric index
-  let Z = parseInt(value);
-
-  if (!isNaN(Z) && Z >= 1 && Z <= 118) {
-    return { Z, symbol: PERIODIC_TABLE[Z - 1] };
-  }
-
-  // Case 2: direct symbol match
-  const symIndex = PERIODIC_TABLE.indexOf(value);
-  if (symIndex !== -1) {
-    return { Z: symIndex + 1, symbol: value };
-  }
-
-  // Case 3: fallback via dropdown index (CRITICAL FIX)
-  if (index >= 0 && index < 118) {
-    return {
-      Z: index + 1,
-      symbol: PERIODIC_TABLE[index]
-    };
-  }
-
-  return { Z: 1, symbol: "H" };
-}
-
-// ===============================
-// LOAD ELEMENT (UI + STATE + SIM)
+// LOAD ELEMENT (UI ONLY — NO LOGIC MIXING)
 // ===============================
 function loadElement() {
-  const el = resolveElement();
+  const sym = document.getElementById("element-select").value;
+  const el = ELEMENTS[sym] || ELEMENTS.H;
 
-  STATE.Z = el.Z;
-  STATE.symbol = el.symbol;
+  document.getElementById("el-symbol").innerText = sym;
+  document.getElementById("el-z").innerText = el.Z;
+  document.getElementById("el-protons").innerText = el.Z;
+  document.getElementById("el-electrons").innerText = el.Z;
 
-  set("el-symbol", el.symbol);
-  set("el-z", el.Z);
-  set("el-protons", el.Z);
-  set("el-electrons", el.Z);
-  set("el-mass", (el.Z * 2.2).toFixed(2));
-
-  if (window.ATOM) {
-    window.ATOM.update(el.Z);
-  }
+  window.atom3D.update(el.Z);
 }
 
 // ===============================
-// THREE.JS ENGINE (CLEAN RENDER ONLY)
+// THREE.JS ENGINE (ONLY ONE SYSTEM)
 // ===============================
-class AtomEngine {
+class Atom3D {
   constructor(canvasId) {
-    const canvas = $(canvasId);
-    if (!canvas || typeof THREE === "undefined") return;
+    const canvas = document.getElementById(canvasId);
 
     this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(75,1,0.1,1000);
+    this.camera.position.z = 12;
 
-    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    this.camera.position.z = 14;
-
-    this.renderer = new THREE.WebGLRenderer({
-      canvas,
-      alpha: true,
-      antialias: true
-    });
-
-    this.renderer.setSize(350, 350);
-
-    this.rx = 0;
-    this.ry = 0;
-    this.drag = false;
-
-    canvas.addEventListener("mousedown", e => {
-      this.drag = true;
-      this.x = e.clientX;
-      this.y = e.clientY;
-    });
-
-    window.addEventListener("mouseup", () => this.drag = false);
-
-    window.addEventListener("mousemove", e => {
-      if (!this.drag) return;
-      this.ry += (e.clientX - this.x) * 0.01;
-      this.rx += (e.clientY - this.y) * 0.01;
-      this.x = e.clientX;
-      this.y = e.clientY;
-    });
-
-    this.nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.8, 32, 32),
-      new THREE.MeshBasicMaterial({ color: 0xff4444 })
-    );
-
-    this.scene.add(this.nucleus);
+    this.renderer = new THREE.WebGLRenderer({canvas,alpha:true});
+    this.renderer.setSize(400,400);
 
     this.electrons = [];
-    this.orbits = [];
+    this.rings = [];
 
-    this.update(1);
+    this.build(1);
     this.animate();
   }
 
-  shells() {
-    return [2, 8, 18, 32, 50, 72, 98];
-  }
-
-  update(Z) {
-    Z = Math.max(1, Math.min(118, Z || 1));
-
-    this.electrons.forEach(e => this.scene.remove(e));
-    this.orbits.forEach(o => this.scene.remove(o));
+  build(Z) {
+    this.electrons.forEach(e=>this.scene.remove(e));
+    this.rings.forEach(r=>this.scene.remove(r));
 
     this.electrons = [];
-    this.orbits = [];
+    this.rings = [];
 
+    const shells = [2,8,18,32,50,72,98];
     let remaining = Z;
     let base = 2;
 
-    for (let s = 0; s < this.shells().length; s++) {
-      if (remaining <= 0) break;
+    for(let s=0;s<shells.length;s++){
+      if(remaining<=0) break;
 
-      const count = Math.min(this.shells()[s], remaining);
-      const radius = base + s * 1.7;
+      let count = Math.min(shells[s], remaining);
+      let r = base + s*1.7;
 
-      const orbit = new THREE.Mesh(
-        new THREE.TorusGeometry(radius, 0.015, 12, 120),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.2, transparent: true })
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(r,0.01,10,100),
+        new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.2})
       );
 
-      this.scene.add(orbit);
-      this.orbits.push(orbit);
+      this.scene.add(ring);
+      this.rings.push(ring);
 
-      for (let i = 0; i < count; i++) {
+      for(let i=0;i<count;i++){
         const e = new THREE.Mesh(
-          new THREE.SphereGeometry(0.13, 14, 14),
-          new THREE.MeshBasicMaterial({ color: 0x00d4ff })
+          new THREE.SphereGeometry(0.12,10,10),
+          new THREE.MeshBasicMaterial({color:0x00d4ff})
         );
 
         e.userData = {
-          angle: (i / count) * Math.PI * 2,
-          radius,
-          speed: 0.02 + s * 0.002
+          a:(i/count)*Math.PI*2,
+          r:r
         };
 
         this.scene.add(e);
@@ -198,34 +111,31 @@ class AtomEngine {
     }
   }
 
-  animate() {
-    requestAnimationFrame(() => this.animate());
+  update(Z){
+    this.build(Z);
+  }
 
-    this.scene.rotation.x = this.rx;
-    this.scene.rotation.y = this.ry;
+  animate(){
+    requestAnimationFrame(()=>this.animate());
 
-    for (let e of this.electrons) {
-      e.userData.angle += e.userData.speed;
+    for(let e of this.electrons){
+      e.userData.a += 0.02;
+      let r = e.userData.r;
 
-      const r = e.userData.radius;
-
-      e.position.x = Math.cos(e.userData.angle) * r;
-      e.position.y = Math.sin(e.userData.angle) * r;
-      e.position.z = Math.sin(e.userData.angle * 0.7) * r * 0.4;
+      e.position.x = Math.cos(e.userData.a)*r;
+      e.position.y = Math.sin(e.userData.a)*r;
+      e.position.z = Math.sin(e.userData.a)*0.5*r;
     }
 
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene,this.camera);
   }
 }
 
 // ===============================
-// INIT (STABLE HOOKS)
+// INIT (ONLY ONCE)
 // ===============================
-window.addEventListener("DOMContentLoaded", () => {
-  window.ATOM = new AtomEngine("atom-canvas");
-
-  const sel = $("element-select");
-  if (sel) sel.addEventListener("change", loadElement);
-
+window.addEventListener("DOMContentLoaded",()=>{
+  window.atom3D = new Atom3D("atom-canvas");
+  document.getElementById("element-select").addEventListener("change",loadElement);
   loadElement();
 });
