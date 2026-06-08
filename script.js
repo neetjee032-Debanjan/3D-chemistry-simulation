@@ -1,9 +1,10 @@
+
 /////////////////////////////////////////////////////
-// ATOMLAB FULL UPGRADED ENGINE (STABLE + SCIENTIFIC)
+// ATOMLAB FINAL FULL SCIENTIFIC ENGINE (ALL-IN-ONE)
 /////////////////////////////////////////////////////
 
 // ===============================
-// GLOBAL STATE (SINGLE SOURCE OF TRUTH)
+// GLOBAL STATE
 // ===============================
 window.STATE = {
   Z: 1,
@@ -12,7 +13,7 @@ window.STATE = {
 };
 
 // ===============================
-// PERIODIC TABLE SYMBOLS (1–118)
+// ELEMENT SYMBOLS (1–118)
 // ===============================
 const ELEMENT_SYMBOLS = [
 "H","He","Li","Be","B","C","N","O","F","Ne",
@@ -29,7 +30,7 @@ const ELEMENT_SYMBOLS = [
 ];
 
 // ===============================
-// ELECTRON CONFIGURATION (AUFBAU RULE)
+// ELECTRON CONFIGURATION ENGINE
 // ===============================
 const ORBITALS = [
 { name:"1s", max:2 },
@@ -69,12 +70,31 @@ function getElectronConfig(Z){
 
 function getValence(config){
   let parts = config.split(" ");
-  let last = parts[parts.length-1];
-  return parseInt(last.split("^")[1]) || 0;
+  return parseInt(parts[parts.length-1].split("^")[1]) || 0;
 }
 
 // ===============================
-// DROPDOWN AUTO GENERATION (FIXED)
+// VSEPR + BOND ENGINE
+// ===============================
+function getVSEPR(valence){
+  if(valence <= 2) return "Linear";
+  if(valence === 3) return "Trigonal Planar";
+  if(valence === 4) return "Tetrahedral";
+  if(valence === 5) return "Trigonal Bipyramidal";
+  if(valence === 6) return "Octahedral";
+  return "Complex";
+}
+
+function getBond(valence){
+  if(valence <= 1) return "No Bond / Noble Gas";
+  if(valence <= 3) return "Weak Covalent";
+  if(valence <= 5) return "Strong Covalent";
+  if(valence <= 7) return "Reactive / Polar Covalent";
+  return "Stable Noble Gas";
+}
+
+// ===============================
+// DROPDOWN AUTO GENERATION
 // ===============================
 function initDropdown(){
   const sel = document.getElementById("element-select");
@@ -89,11 +109,11 @@ function initDropdown(){
     sel.appendChild(opt);
   }
 
-  sel.value = 6; // Carbon default
+  sel.value = 6;
 }
 
 // ===============================
-// SAFE UI UPDATE
+// UI HELPER
 // ===============================
 function setText(id,val){
   const el=document.getElementById(id);
@@ -101,7 +121,7 @@ function setText(id,val){
 }
 
 // ===============================
-// MAIN ELEMENT LOADER (100% SYNC FIXED)
+// MAIN LOADER (100% FIXED SYSTEM)
 // ===============================
 function loadElement(){
   const sel=document.getElementById("element-select");
@@ -113,12 +133,8 @@ function loadElement(){
   const config=getElectronConfig(Z);
   const valence=getValence(config);
 
-  // GLOBAL STATE UPDATE
-  window.STATE.Z=Z;
-  window.STATE.symbol=symbol;
-  window.STATE.config=config;
+  window.STATE={Z,symbol,config};
 
-  // UI UPDATE (NO OLD VALUES EVER)
   setText("el-symbol",symbol);
   setText("el-z",Z);
   setText("el-protons",Z);
@@ -126,15 +142,14 @@ function loadElement(){
   setText("el-mass",(Z*2.2).toFixed(3));
   setText("el-config",config);
   setText("el-valence",valence);
+  setText("el-geometry",getVSEPR(valence));
+  setText("el-bond",getBond(valence));
 
-  // 3D UPDATE
   window.atomRenderer?.update(Z);
-
-  console.log("Loaded:",symbol,Z);
 }
 
 // ===============================
-// ATOM RENDERER (STABLE 118 ELEMENT ENGINE)
+// ATOM SIMULATION (STABLE 118 SUPPORT)
 // ===============================
 class AtomRenderer{
   constructor(id){
@@ -217,21 +232,9 @@ class AtomRenderer{
 }
 
 // ===============================
-// NAVIGATION SAFE
-// ===============================
-function showPage(id){
-  document.querySelectorAll("div[id^='page-']")
-    .forEach(p=>p.style.display="none");
-
-  const target=document.getElementById("page-"+id);
-  if(target) target.style.display="flex";
-}
-
-// ===============================
 // INIT SYSTEM
 // ===============================
 window.addEventListener("DOMContentLoaded",()=>{
-
   initDropdown();
 
   window.atomRenderer=new AtomRenderer("atom-canvas");
