@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>3D Chemistry Lab: Atomic Structure & Chemical Bonding</title>
+    <title>3D Chemistry Lab: Complete Atomic Structure & Chemical Bonding</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -29,18 +29,18 @@
         .header {
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(12px);
-            padding: 1rem 2rem;
+            padding: 0.8rem 1.5rem;
             border-bottom: 1px solid #2d3a5e;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.8rem;
             z-index: 10;
         }
 
         .logo h1 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             background: linear-gradient(135deg, #60a5fa, #c084fc);
             -webkit-background-clip: text;
             background-clip: text;
@@ -48,13 +48,13 @@
         }
 
         .logo p {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #94a3b8;
         }
 
         .topic-nav {
             display: flex;
-            gap: 0.75rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
@@ -62,18 +62,17 @@
             background: #1e293b;
             border: none;
             color: #cbd5e1;
-            padding: 0.5rem 1.2rem;
+            padding: 0.4rem 1rem;
             border-radius: 40px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
         .topic-btn.active, .topic-btn:hover {
             background: #3b82f6;
             color: white;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
         .main-panel {
@@ -83,15 +82,15 @@
         }
 
         .info-sidebar {
-            width: 340px;
-            background: rgba(10, 15, 30, 0.9);
+            width: 360px;
+            background: rgba(10, 15, 30, 0.95);
             backdrop-filter: blur(8px);
             border-right: 1px solid #1e2a44;
             overflow-y: auto;
-            padding: 1.2rem;
+            padding: 1rem;
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 1rem;
         }
 
         .canvas-container {
@@ -108,7 +107,7 @@
 
         .card {
             background: rgba(15, 23, 42, 0.85);
-            border-radius: 1.2rem;
+            border-radius: 1rem;
             padding: 1rem;
             border: 1px solid #2d3a5e;
         }
@@ -116,49 +115,51 @@
         .card h3, .card h4 {
             margin-bottom: 0.75rem;
             color: #60a5fa;
+            font-size: 1rem;
         }
 
-        select {
+        select, input {
             width: 100%;
-            padding: 0.6rem;
+            padding: 0.5rem;
             border-radius: 0.8rem;
             background: #1e293b;
             border: 1px solid #3b4a6b;
             color: white;
             font-weight: 500;
-            margin: 0.5rem 0;
+            margin: 0.3rem 0;
             cursor: pointer;
         }
 
         .info-text {
-            font-size: 0.85rem;
-            line-height: 1.5;
+            font-size: 0.8rem;
+            line-height: 1.4;
             color: #cbd5f0;
         }
 
         .property-row {
             display: flex;
             justify-content: space-between;
-            padding: 0.4rem 0;
+            padding: 0.3rem 0;
             border-bottom: 1px solid #2d3a5e;
+            font-size: 0.8rem;
         }
 
         button.simulate {
             background: #3b82f6;
             border: none;
-            padding: 0.6rem;
+            padding: 0.5rem;
             border-radius: 2rem;
             color: white;
             font-weight: bold;
-            margin: 0.5rem 0;
+            margin: 0.3rem 0;
             cursor: pointer;
             width: 100%;
             transition: all 0.2s;
+            font-size: 0.8rem;
         }
 
         button.simulate:hover {
             background: #2563eb;
-            transform: translateY(-1px);
         }
 
         .resource-list {
@@ -166,16 +167,50 @@
         }
 
         .resource-list li {
-            margin: 0.5rem 0;
+            margin: 0.4rem 0;
         }
 
         .resource-list a {
             color: #60a5fa;
             text-decoration: none;
+            font-size: 0.8rem;
         }
 
         .mt-2 {
             margin-top: 0.5rem;
+        }
+
+        .orbitals-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .orbital-btn {
+            background: #1e293b;
+            border: 1px solid #3b4a6b;
+            padding: 0.4rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+
+        .orbital-btn:hover {
+            background: #3b82f6;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -189,8 +224,9 @@
             <div class="topic-nav">
                 <button class="topic-btn active" data-topic="atomic">⚛️ Atomic Structure</button>
                 <button class="topic-btn" data-topic="orbitals">🌀 Orbital Explorer</button>
-                <button class="topic-btn" data-topic="vsepr">📐 VSEPR & Hybridization</button>
-                <button class="topic-btn" data-topic="mot">⚡ Molecular Orbital (MO)</button>
+                <button class="topic-btn" data-topic="vsepr">📐 VSEPR Theory</button>
+                <button class="topic-btn" data-topic="hybridization">🔬 Hybridization</button>
+                <button class="topic-btn" data-topic="mot">⚡ MO Theory</button>
                 <button class="topic-btn" data-topic="resources">📚 Resources</button>
             </div>
         </div>
