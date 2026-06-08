@@ -1,9 +1,9 @@
 /////////////////////////////////////////////////////
-// ATOMLAB ULTRA STABLE ENGINE (FULL REBUILD FIX)
+// ATOMLAB ULTRA STABLE ENGINE + 3D ORBIT UPGRADE
 /////////////////////////////////////////////////////
 
 // ===============================
-// GLOBAL STATE (SINGLE SOURCE OF TRUTH)
+// GLOBAL STATE
 // ===============================
 window.STATE = {
   Z: 1,
@@ -11,46 +11,24 @@ window.STATE = {
 };
 
 // ===============================
-// FULL PERIODIC TABLE (118 ELEMENTS AUTO-GENERATED)
+// ELEMENT SYMBOLS (118)
 // ===============================
 const ELEMENT_SYMBOLS = [
-  "H","He","Li","Be","B","C","N","O","F","Ne",
-  "Na","Mg","Al","Si","P","S","Cl","Ar",
-  "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
-  "Ga","Ge","As","Se","Br","Kr",
-  "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
-  "In","Sn","Sb","Te","I","Xe",
-  "Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
-  "Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
-  "Tl","Pb","Bi","Po","At","Rn",
-  "Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
-  "Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
+"H","He","Li","Be","B","C","N","O","F","Ne",
+"Na","Mg","Al","Si","P","S","Cl","Ar",
+"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
+"Ga","Ge","As","Se","Br","Kr",
+"Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
+"In","Sn","Sb","Te","I","Xe",
+"Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
+"Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
+"Tl","Pb","Bi","Po","At","Rn",
+"Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
+"Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
 ];
 
 // ===============================
-// CREATE DROPDOWN AUTOMATICALLY (FIXES YOUR MAIN ISSUE)
-// ===============================
-function initDropdown() {
-  const sel = document.getElementById("element-select");
-  if (!sel) return;
-
-  sel.innerHTML = "";
-
-  for (let i = 1; i <= 118; i++) {
-    const opt = document.createElement("option");
-    const symbol = ELEMENT_SYMBOLS[i - 1];
-
-    opt.value = i;
-    opt.textContent = `${symbol} (Z=${i})`;
-
-    sel.appendChild(opt);
-  }
-
-  sel.value = 6; // default Carbon
-}
-
-// ===============================
-// SAFE TEXT SETTER
+// SAFE TEXT
 // ===============================
 function setText(id, val) {
   const el = document.getElementById(id);
@@ -58,49 +36,41 @@ function setText(id, val) {
 }
 
 // ===============================
-// MAIN ELEMENT LOADER (100% FIXED)
+// LOAD ELEMENT
 // ===============================
 function loadElement() {
   const sel = document.getElementById("element-select");
-  if (!sel) return;
-
   const Z = parseInt(sel.value);
 
-  const symbol = ELEMENT_SYMBOLS[Z - 1] || "X";
+  const symbol = ELEMENT_SYMBOLS[Z - 1];
 
-  // update global state
   window.STATE.Z = Z;
   window.STATE.symbol = symbol;
 
-  // ALWAYS overwrite UI (prevents Carbon/Hydrogen freeze)
   setText("el-symbol", symbol);
   setText("el-z", Z);
   setText("el-protons", Z);
   setText("el-electrons", Z);
-  setText("el-mass", (Z * 2.2).toFixed(3));
+  setText("el-mass", (Z * 2.2).toFixed(2));
 
-  // update atom
-  if (window.atomRenderer) {
-    window.atomRenderer.update(Z);
-  }
+  window.atomRenderer?.update(Z);
 
-  console.log("Loaded element:", symbol, Z);
+  console.log("Loaded:", symbol, Z);
 }
 
-/////////////////////////////////////////////////////
-// ATOM — REAL 3D ORBITAL VISUAL ENGINE (VIDEO STYLE)
-/////////////////////////////////////////////////////
+// ===============================
+// ATOM RENDERER (FULL 3D ORBIT SYSTEM)
+// ===============================
+class AtomRenderer {
 
-class Atom3D {
+  constructor(id) {
 
-  constructor(canvasId) {
-
-    const canvas = document.getElementById(canvasId);
+    const canvas = document.getElementById(id);
 
     this.scene = new THREE.Scene();
 
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
-    this.camera.position.z = 18;
+    this.camera.position.z = 14;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -108,11 +78,11 @@ class Atom3D {
       antialias: true
     });
 
-    this.renderer.setSize(420, 420);
+    this.renderer.setSize(350, 350);
 
     // nucleus
     this.nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 32, 32),
+      new THREE.SphereGeometry(0.6, 24, 24),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
 
@@ -121,27 +91,20 @@ class Atom3D {
     this.electrons = [];
     this.orbits = [];
 
-    this.time = 0;
-
     this.update(1);
     this.animate();
   }
 
-  // -----------------------------
-  // SHELL STRUCTURE (REALISTIC CAPACITY)
-  // -----------------------------
+  // shell structure
   shells() {
     return [2, 8, 18, 32, 50, 72, 98];
   }
 
-  // -----------------------------
+  // ===============================
   // BUILD ATOM
-  // -----------------------------
+  // ===============================
   update(Z) {
 
-    Z = Math.max(1, Math.min(118, Z));
-
-    // clear previous
     this.electrons.forEach(e => this.scene.remove(e));
     this.orbits.forEach(o => this.scene.remove(o));
 
@@ -149,22 +112,20 @@ class Atom3D {
     this.orbits = [];
 
     let remaining = Z;
-    let baseRadius = 2;
+    let base = 2;
 
     for (let s = 0; s < this.shells().length; s++) {
 
       if (remaining <= 0) break;
 
-      const capacity = this.shells()[s];
-      const count = Math.min(capacity, remaining);
-
-      const radius = baseRadius + s * 2.2;
+      const count = Math.min(this.shells()[s], remaining);
+      const radius = base + s * 1.8;
 
       // =========================
-      // 🔵 ORBIT PLANE (3D TILTED)
+      // ORBIT RING (3D TILTED)
       // =========================
-      const orbit = new THREE.Mesh(
-        new THREE.TorusGeometry(radius, 0.02, 16, 200),
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(radius, 0.02, 16, 160),
         new THREE.MeshBasicMaterial({
           color: 0xffffff,
           transparent: true,
@@ -172,57 +133,49 @@ class Atom3D {
         })
       );
 
-      // RANDOM 3D TILT (key for “video style” look)
-      orbit.rotation.x = Math.random() * Math.PI;
-      orbit.rotation.y = Math.random() * Math.PI;
-      orbit.rotation.z = Math.random() * Math.PI;
+      // RANDOM 3D ORIENTATION (KEY FIX)
+      ring.rotation.x = Math.random() * Math.PI;
+      ring.rotation.y = Math.random() * Math.PI;
+      ring.rotation.z = Math.random() * Math.PI;
 
-      this.scene.add(orbit);
-      this.orbits.push(orbit);
+      this.scene.add(ring);
+      this.orbits.push(ring);
 
       // =========================
-      // ⚡ ELECTRONS (3D MOTION)
+      // ELECTRONS (3D MOTION)
       // =========================
       for (let i = 0; i < count; i++) {
 
-        const electron = new THREE.Mesh(
-          new THREE.SphereGeometry(0.14, 16, 16),
+        const e = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 14, 14),
           new THREE.MeshBasicMaterial({ color: 0x00d4ff })
         );
 
-        electron.userData = {
-
+        e.userData = {
           angle: (i / count) * Math.PI * 2,
-
           radius: radius,
+          speed: 0.015 + s * 0.002,
 
-          speed: 0.015 + s * 0.003,
-
-          // each shell has its own orbital plane axis
-          tiltX: Math.random() * 0.6,
-          tiltY: Math.random() * 0.6,
-          tiltZ: Math.random() * 0.6
+          // 3D orbital tilt factors
+          tiltX: Math.random() * 0.8,
+          tiltY: Math.random() * 0.8,
+          tiltZ: Math.random() * 0.8
         };
 
-        this.scene.add(electron);
-        this.electrons.push(electron);
+        this.scene.add(e);
+        this.electrons.push(e);
       }
 
       remaining -= count;
     }
   }
 
-  // -----------------------------
-  // ANIMATION LOOP (TRUE 3D ORBIT)
-  // -----------------------------
+  // ===============================
+  // ANIMATION (TRUE 3D ORBIT MOTION)
+  // ===============================
   animate() {
 
     requestAnimationFrame(() => this.animate());
-
-    this.time += 0.01;
-
-    // nucleus slight pulse
-    this.nucleus.scale.setScalar(1 + Math.sin(this.time) * 0.05);
 
     for (let e of this.electrons) {
 
@@ -230,12 +183,12 @@ class Atom3D {
 
       const r = e.userData.radius;
 
-      // base circular orbit
+      // base orbit path
       let x = Math.cos(e.userData.angle) * r;
       let y = Math.sin(e.userData.angle) * r;
       let z = Math.sin(e.userData.angle * 0.7) * r * 0.6;
 
-      // APPLY 3D TILT TRANSFORMATIONS
+      // apply 3D tilting transforms
       const tx = e.userData.tiltX;
       const ty = e.userData.tiltY;
       const tz = e.userData.tiltZ;
@@ -250,21 +203,9 @@ class Atom3D {
 }
 
 // ===============================
-// NAVIGATION (SAFE)
-// ===============================
-function showPage(id) {
-  document.querySelectorAll("div[id^='page-']")
-    .forEach(p => p.style.display = "none");
-
-  const target = document.getElementById("page-" + id);
-  if (target) target.style.display = "flex";
-}
-
-// ===============================
-// INIT EVERYTHING
+// INIT SYSTEM
 // ===============================
 window.addEventListener("DOMContentLoaded", () => {
-  initDropdown();
 
   window.atomRenderer = new AtomRenderer("atom-canvas");
 
@@ -273,4 +214,3 @@ window.addEventListener("DOMContentLoaded", () => {
 
   loadElement();
 });
-
