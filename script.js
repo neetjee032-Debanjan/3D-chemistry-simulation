@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////
-// ATOMLAB ULTRA STABLE ENGINE (FULL REBUILD FIX)
+// ATOMLAB FULL UPGRADED ENGINE (STABLE + SCIENTIFIC)
 /////////////////////////////////////////////////////
 
 // ===============================
@@ -7,106 +7,152 @@
 // ===============================
 window.STATE = {
   Z: 1,
-  symbol: "H"
+  symbol: "H",
+  config: ""
 };
 
 // ===============================
-// FULL PERIODIC TABLE (118 ELEMENTS AUTO-GENERATED)
+// PERIODIC TABLE SYMBOLS (1–118)
 // ===============================
 const ELEMENT_SYMBOLS = [
-  "H","He","Li","Be","B","C","N","O","F","Ne",
-  "Na","Mg","Al","Si","P","S","Cl","Ar",
-  "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
-  "Ga","Ge","As","Se","Br","Kr",
-  "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
-  "In","Sn","Sb","Te","I","Xe",
-  "Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
-  "Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
-  "Tl","Pb","Bi","Po","At","Rn",
-  "Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
-  "Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
+"H","He","Li","Be","B","C","N","O","F","Ne",
+"Na","Mg","Al","Si","P","S","Cl","Ar",
+"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
+"Ga","Ge","As","Se","Br","Kr",
+"Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
+"In","Sn","Sb","Te","I","Xe",
+"Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
+"Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
+"Tl","Pb","Bi","Po","At","Rn",
+"Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
+"Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
 ];
 
 // ===============================
-// CREATE DROPDOWN AUTOMATICALLY (FIXES YOUR MAIN ISSUE)
+// ELECTRON CONFIGURATION (AUFBAU RULE)
 // ===============================
-function initDropdown() {
+const ORBITALS = [
+{ name:"1s", max:2 },
+{ name:"2s", max:2 },
+{ name:"2p", max:6 },
+{ name:"3s", max:2 },
+{ name:"3p", max:6 },
+{ name:"4s", max:2 },
+{ name:"3d", max:10 },
+{ name:"4p", max:6 },
+{ name:"5s", max:2 },
+{ name:"4d", max:10 },
+{ name:"5p", max:6 },
+{ name:"6s", max:2 },
+{ name:"4f", max:14 },
+{ name:"5d", max:10 },
+{ name:"6p", max:6 },
+{ name:"7s", max:2 },
+{ name:"5f", max:14 },
+{ name:"6d", max:10 },
+{ name:"7p", max:6 }
+];
+
+function getElectronConfig(Z){
+  let remaining = Z;
+  let config = [];
+
+  for(let o of ORBITALS){
+    if(remaining <= 0) break;
+    let fill = Math.min(o.max, remaining);
+    config.push(`${o.name}^${fill}`);
+    remaining -= fill;
+  }
+
+  return config.join(" ");
+}
+
+function getValence(config){
+  let parts = config.split(" ");
+  let last = parts[parts.length-1];
+  return parseInt(last.split("^")[1]) || 0;
+}
+
+// ===============================
+// DROPDOWN AUTO GENERATION (FIXED)
+// ===============================
+function initDropdown(){
   const sel = document.getElementById("element-select");
-  if (!sel) return;
+  if(!sel) return;
 
   sel.innerHTML = "";
 
-  for (let i = 1; i <= 118; i++) {
+  for(let i=1;i<=118;i++){
     const opt = document.createElement("option");
-    const symbol = ELEMENT_SYMBOLS[i - 1];
-
     opt.value = i;
-    opt.textContent = `${symbol} (Z=${i})`;
-
+    opt.textContent = `${ELEMENT_SYMBOLS[i-1]} (Z=${i})`;
     sel.appendChild(opt);
   }
 
-  sel.value = 6; // default Carbon
+  sel.value = 6; // Carbon default
 }
 
 // ===============================
-// SAFE TEXT SETTER
+// SAFE UI UPDATE
 // ===============================
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.innerText = val;
+function setText(id,val){
+  const el=document.getElementById(id);
+  if(el) el.innerText=val;
 }
 
 // ===============================
-// MAIN ELEMENT LOADER (100% FIXED)
+// MAIN ELEMENT LOADER (100% SYNC FIXED)
 // ===============================
-function loadElement() {
-  const sel = document.getElementById("element-select");
-  if (!sel) return;
+function loadElement(){
+  const sel=document.getElementById("element-select");
+  if(!sel) return;
 
-  const Z = parseInt(sel.value);
+  const Z=parseInt(sel.value);
+  const symbol=ELEMENT_SYMBOLS[Z-1];
 
-  const symbol = ELEMENT_SYMBOLS[Z - 1] || "X";
+  const config=getElectronConfig(Z);
+  const valence=getValence(config);
 
-  // update global state
-  window.STATE.Z = Z;
-  window.STATE.symbol = symbol;
+  // GLOBAL STATE UPDATE
+  window.STATE.Z=Z;
+  window.STATE.symbol=symbol;
+  window.STATE.config=config;
 
-  // ALWAYS overwrite UI (prevents Carbon/Hydrogen freeze)
-  setText("el-symbol", symbol);
-  setText("el-z", Z);
-  setText("el-protons", Z);
-  setText("el-electrons", Z);
-  setText("el-mass", (Z * 2.2).toFixed(3));
+  // UI UPDATE (NO OLD VALUES EVER)
+  setText("el-symbol",symbol);
+  setText("el-z",Z);
+  setText("el-protons",Z);
+  setText("el-electrons",Z);
+  setText("el-mass",(Z*2.2).toFixed(3));
+  setText("el-config",config);
+  setText("el-valence",valence);
 
-  // update atom
-  if (window.atomRenderer) {
-    window.atomRenderer.update(Z);
-  }
+  // 3D UPDATE
+  window.atomRenderer?.update(Z);
 
-  console.log("Loaded element:", symbol, Z);
+  console.log("Loaded:",symbol,Z);
 }
 
 // ===============================
-// ATOM RENDERER (STABLE FOR ALL Z)
+// ATOM RENDERER (STABLE 118 ELEMENT ENGINE)
 // ===============================
-class AtomRenderer {
-  constructor(id) {
-    const canvas = document.getElementById(id);
-    if (!canvas || typeof THREE === "undefined") return;
+class AtomRenderer{
+  constructor(id){
+    const canvas=document.getElementById(id);
+    if(!canvas || typeof THREE==="undefined") return;
 
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    this.camera.position.z = 6;
+    this.scene=new THREE.Scene();
+    this.camera=new THREE.PerspectiveCamera(75,1,0.1,1000);
+    this.camera.position.z=6;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-    this.renderer.setSize(350, 350);
+    this.renderer=new THREE.WebGLRenderer({canvas,alpha:true});
+    this.renderer.setSize(350,350);
 
-    this.electrons = [];
+    this.electrons=[];
 
-    this.nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xff4444 })
+    this.nucleus=new THREE.Mesh(
+      new THREE.SphereGeometry(0.5,16,16),
+      new THREE.MeshBasicMaterial({color:0xff4444})
     );
 
     this.scene.add(this.nucleus);
@@ -115,82 +161,83 @@ class AtomRenderer {
     this.animate();
   }
 
-  createElectrons(Z) {
-    this.electrons.forEach(e => this.scene.remove(e.mesh));
-    this.electrons = [];
+  createElectrons(Z){
+    this.electrons.forEach(e=>this.scene.remove(e.mesh));
+    this.electrons=[];
 
-    const shells = [2, 8, 18, 32, 50, 72, 98];
+    const shells=[2,8,18,32,50,72,98];
 
-    let remaining = Z;
-    let baseR = 1.5;
+    let remaining=Z;
+    let base=1.5;
 
-    for (let s = 0; s < shells.length; s++) {
-      if (remaining <= 0) break;
+    for(let s=0;s<shells.length;s++){
+      if(remaining<=0) break;
 
-      const count = Math.min(shells[s], remaining);
+      let count=Math.min(shells[s],remaining);
 
-      for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2;
+      for(let i=0;i<count;i++){
+        let angle=(i/count)*Math.PI*2;
 
-        const mesh = new THREE.Mesh(
-          new THREE.SphereGeometry(0.1, 12, 12),
-          new THREE.MeshBasicMaterial({ color: 0x00d4ff })
+        let mesh=new THREE.Mesh(
+          new THREE.SphereGeometry(0.1,12,12),
+          new THREE.MeshBasicMaterial({color:0x00d4ff})
         );
 
-        const radius = baseR + s * 1.4;
+        let radius=base+s*1.4;
 
         this.electrons.push({
           mesh,
           angle,
           radius,
-          speed: 0.02 + s * 0.002
+          speed:0.02+s*0.002
         });
 
         this.scene.add(mesh);
       }
 
-      remaining -= count;
+      remaining-=count;
     }
   }
 
-  update(Z) {
+  update(Z){
     this.createElectrons(Z);
   }
 
-  animate() {
-    requestAnimationFrame(() => this.animate());
+  animate(){
+    requestAnimationFrame(()=>this.animate());
 
-    this.electrons.forEach(e => {
-      e.angle += e.speed;
-      e.mesh.position.x = Math.cos(e.angle) * e.radius;
-      e.mesh.position.y = Math.sin(e.angle) * e.radius;
+    this.electrons.forEach(e=>{
+      e.angle+=e.speed;
+      e.mesh.position.x=Math.cos(e.angle)*e.radius;
+      e.mesh.position.y=Math.sin(e.angle)*e.radius;
     });
 
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene,this.camera);
   }
 }
 
 // ===============================
-// NAVIGATION (SAFE)
+// NAVIGATION SAFE
 // ===============================
-function showPage(id) {
+function showPage(id){
   document.querySelectorAll("div[id^='page-']")
-    .forEach(p => p.style.display = "none");
+    .forEach(p=>p.style.display="none");
 
-  const target = document.getElementById("page-" + id);
-  if (target) target.style.display = "flex";
+  const target=document.getElementById("page-"+id);
+  if(target) target.style.display="flex";
 }
 
 // ===============================
-// INIT EVERYTHING
+// INIT SYSTEM
 // ===============================
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded",()=>{
+
   initDropdown();
 
-  window.atomRenderer = new AtomRenderer("atom-canvas");
+  window.atomRenderer=new AtomRenderer("atom-canvas");
 
-  const sel = document.getElementById("element-select");
-  sel.addEventListener("change", loadElement);
+  const sel=document.getElementById("element-select");
+  sel.addEventListener("change",loadElement);
 
   loadElement();
 });
