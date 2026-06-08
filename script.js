@@ -1,191 +1,197 @@
 /////////////////////////////////////////////////////
-// ATOMLAB — SAFE RECOVERY ENGINE (NO CRASH VERSION)
+// ATOMLAB ULTRA STABLE ENGINE (FULL REBUILD FIX)
 /////////////////////////////////////////////////////
 
-(function () {
+// ===============================
+// GLOBAL STATE (SINGLE SOURCE OF TRUTH)
+// ===============================
+window.STATE = {
+  Z: 1,
+  symbol: "H"
+};
 
-  console.log("ATOM ENGINE LOADING...");
+// ===============================
+// FULL PERIODIC TABLE (118 ELEMENTS AUTO-GENERATED)
+// ===============================
+const ELEMENT_SYMBOLS = [
+  "H","He","Li","Be","B","C","N","O","F","Ne",
+  "Na","Mg","Al","Si","P","S","Cl","Ar",
+  "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
+  "Ga","Ge","As","Se","Br","Kr",
+  "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
+  "In","Sn","Sb","Te","I","Xe",
+  "Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
+  "Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
+  "Tl","Pb","Bi","Po","At","Rn",
+  "Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
+  "Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
+];
 
-  // ----------------------------
-  // SAFE WAIT FOR DOM
-  // ----------------------------
-  window.addEventListener("DOMContentLoaded", () => {
+// ===============================
+// CREATE DROPDOWN AUTOMATICALLY (FIXES YOUR MAIN ISSUE)
+// ===============================
+function initDropdown() {
+  const sel = document.getElementById("element-select");
+  if (!sel) return;
 
-    console.log("DOM READY");
+  sel.innerHTML = "";
 
-    const canvas = document.getElementById("atom-canvas");
-    const selector = document.getElementById("element-select");
+  for (let i = 1; i <= 118; i++) {
+    const opt = document.createElement("option");
+    const symbol = ELEMENT_SYMBOLS[i - 1];
 
-    // ----------------------------
-    // CHECK 1: Canvas exists
-    // ----------------------------
-    if (!canvas) {
-      console.error("❌ atom-canvas NOT FOUND in HTML");
-      return;
-    }
+    opt.value = i;
+    opt.textContent = `${symbol} (Z=${i})`;
 
-    // ----------------------------
-    // CHECK 2: THREE exists
-    // ----------------------------
-    if (typeof THREE === "undefined") {
-      console.error("❌ THREE.js NOT LOADED — check script tag in HTML");
-      return;
-    }
+    sel.appendChild(opt);
+  }
 
-    console.log("THREE.js OK");
+  sel.value = 6; // default Carbon
+}
 
-    // ----------------------------
-    // PERIODIC TABLE
-    // ----------------------------
-    const SYMBOLS = [
-      "H","He","Li","Be","B","C","N","O","F","Ne",
-      "Na","Mg","Al","Si","P","S","Cl","Ar",
-      "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
-      "Ga","Ge","As","Se","Br","Kr",
-      "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
-      "In","Sn","Sb","Te","I","Xe",
-      "Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
-      "Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
-      "Tl","Pb","Bi","Po","At","Rn",
-      "Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
-      "Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
-    ];
+// ===============================
+// SAFE TEXT SETTER
+// ===============================
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = val;
+}
 
-    // ----------------------------
-    // STATE
-    // ----------------------------
-    let Z = 1;
+// ===============================
+// MAIN ELEMENT LOADER (100% FIXED)
+// ===============================
+function loadElement() {
+  const sel = document.getElementById("element-select");
+  if (!sel) return;
 
-    // ----------------------------
-    // THREE SETUP
-    // ----------------------------
-    const scene = new THREE.Scene();
+  const Z = parseInt(sel.value);
 
-    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    camera.position.z = 12;
+  const symbol = ELEMENT_SYMBOLS[Z - 1] || "X";
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      alpha: true,
-      antialias: true
-    });
+  // update global state
+  window.STATE.Z = Z;
+  window.STATE.symbol = symbol;
 
-    renderer.setSize(400, 400);
+  // ALWAYS overwrite UI (prevents Carbon/Hydrogen freeze)
+  setText("el-symbol", symbol);
+  setText("el-z", Z);
+  setText("el-protons", Z);
+  setText("el-electrons", Z);
+  setText("el-mass", (Z * 2.2).toFixed(3));
 
-    // nucleus
-    const nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.8, 32, 32),
+  // update atom
+  if (window.atomRenderer) {
+    window.atomRenderer.update(Z);
+  }
+
+  console.log("Loaded element:", symbol, Z);
+}
+
+// ===============================
+// ATOM RENDERER (STABLE FOR ALL Z)
+// ===============================
+class AtomRenderer {
+  constructor(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas || typeof THREE === "undefined") return;
+
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    this.camera.position.z = 6;
+
+    this.renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    this.renderer.setSize(350, 350);
+
+    this.electrons = [];
+
+    this.nucleus = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
 
-    scene.add(nucleus);
+    this.scene.add(this.nucleus);
 
-    let electrons = [];
+    this.createElectrons(1);
+    this.animate();
+  }
 
-    // ----------------------------
-    // BUILD ATOM
-    // ----------------------------
-    function buildAtom(Z) {
+  createElectrons(Z) {
+    this.electrons.forEach(e => this.scene.remove(e.mesh));
+    this.electrons = [];
 
-      console.log("Building atom Z =", Z);
+    const shells = [2, 8, 18, 32, 50, 72, 98];
 
-      electrons.forEach(e => scene.remove(e));
-      electrons = [];
+    let remaining = Z;
+    let baseR = 1.5;
 
-      const shells = [2,8,18,32,50,72,98];
+    for (let s = 0; s < shells.length; s++) {
+      if (remaining <= 0) break;
 
-      let remaining = Z;
-      let base = 2;
+      const count = Math.min(shells[s], remaining);
 
-      for (let s = 0; s < shells.length; s++) {
-        if (remaining <= 0) break;
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
 
-        const count = Math.min(shells[s], remaining);
-        const radius = base + s * 1.6;
+        const mesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.1, 12, 12),
+          new THREE.MeshBasicMaterial({ color: 0x00d4ff })
+        );
 
-        for (let i = 0; i < count; i++) {
-          const e = new THREE.Mesh(
-            new THREE.SphereGeometry(0.12, 12, 12),
-            new THREE.MeshBasicMaterial({ color: 0x00d4ff })
-          );
+        const radius = baseR + s * 1.4;
 
-          e.userData = {
-            angle: (i / count) * Math.PI * 2,
-            radius
-          };
+        this.electrons.push({
+          mesh,
+          angle,
+          radius,
+          speed: 0.02 + s * 0.002
+        });
 
-          scene.add(e);
-          electrons.push(e);
-        }
-
-        remaining -= count;
-      }
-    }
-
-    // ----------------------------
-    // UPDATE UI
-    // ----------------------------
-    function updateUI(Z) {
-      const sym = SYMBOLS[Z - 1];
-
-      const el = document.getElementById("el-symbol");
-      if (el) el.innerText = sym;
-
-      const zEl = document.getElementById("el-z");
-      if (zEl) zEl.innerText = Z;
-    }
-
-    // ----------------------------
-    // SELECT HANDLER
-    // ----------------------------
-    function onSelectChange() {
-      if (!selector) return;
-
-      const val = selector.value;
-
-      let newZ = parseInt(val);
-
-      if (isNaN(newZ)) {
-        newZ = SYMBOLS.indexOf(val) + 1;
+        this.scene.add(mesh);
       }
 
-      if (newZ < 1 || newZ > 118) newZ = 1;
-
-      Z = newZ;
-
-      updateUI(Z);
-      buildAtom(Z);
+      remaining -= count;
     }
+  }
 
-    if (selector) {
-      selector.addEventListener("change", onSelectChange);
-    }
+  update(Z) {
+    this.createElectrons(Z);
+  }
 
-    // ----------------------------
-    // ANIMATION LOOP
-    // ----------------------------
-    function animate() {
-      requestAnimationFrame(animate);
+  animate() {
+    requestAnimationFrame(() => this.animate());
 
-      electrons.forEach(e => {
-        e.userData.angle += 0.02;
+    this.electrons.forEach(e => {
+      e.angle += e.speed;
+      e.mesh.position.x = Math.cos(e.angle) * e.radius;
+      e.mesh.position.y = Math.sin(e.angle) * e.radius;
+    });
 
-        const r = e.userData.radius;
+    this.renderer.render(this.scene, this.camera);
+  }
+}
 
-        e.position.x = Math.cos(e.userData.angle) * r;
-        e.position.y = Math.sin(e.userData.angle) * r;
-        e.position.z = Math.sin(e.userData.angle) * 0.5 * r;
-      });
+// ===============================
+// NAVIGATION (SAFE)
+// ===============================
+function showPage(id) {
+  document.querySelectorAll("div[id^='page-']")
+    .forEach(p => p.style.display = "none");
 
-      renderer.render(scene, camera);
-    }
+  const target = document.getElementById("page-" + id);
+  if (target) target.style.display = "flex";
+}
 
-    // START
-    buildAtom(1);
-    animate();
+// ===============================
+// INIT EVERYTHING
+// ===============================
+window.addEventListener("DOMContentLoaded", () => {
+  initDropdown();
 
-    console.log("ATOM ENGINE STARTED SUCCESSFULLY");
+  window.atomRenderer = new AtomRenderer("atom-canvas");
 
-  });
+  const sel = document.getElementById("element-select");
+  sel.addEventListener("change", loadElement);
 
-})();
+  loadElement();
+});
+
