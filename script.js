@@ -1,6 +1,5 @@
-
 /////////////////////////////////////////////////////
-// ATOMLAB FINAL FULL SCIENTIFIC ENGINE (ALL-IN-ONE)
+// ATOMLAB MASTER SCIENTIFIC ENGINE (FINAL BUILD)
 /////////////////////////////////////////////////////
 
 // ===============================
@@ -30,7 +29,7 @@ const ELEMENT_SYMBOLS = [
 ];
 
 // ===============================
-// ELECTRON CONFIGURATION ENGINE
+// ELECTRON CONFIGURATION (AUFBAU)
 // ===============================
 const ORBITALS = [
 { name:"1s", max:2 },
@@ -74,46 +73,46 @@ function getValence(config){
 }
 
 // ===============================
-// VSEPR + BOND ENGINE
+// VSEPR + BONDING
 // ===============================
-function getVSEPR(valence){
-  if(valence <= 2) return "Linear";
-  if(valence === 3) return "Trigonal Planar";
-  if(valence === 4) return "Tetrahedral";
-  if(valence === 5) return "Trigonal Bipyramidal";
-  if(valence === 6) return "Octahedral";
+function getVSEPR(v){
+  if(v<=2) return "Linear";
+  if(v===3) return "Trigonal Planar";
+  if(v===4) return "Tetrahedral";
+  if(v===5) return "Trigonal Bipyramidal";
+  if(v===6) return "Octahedral";
   return "Complex";
 }
 
-function getBond(valence){
-  if(valence <= 1) return "No Bond / Noble Gas";
-  if(valence <= 3) return "Weak Covalent";
-  if(valence <= 5) return "Strong Covalent";
-  if(valence <= 7) return "Reactive / Polar Covalent";
-  return "Stable Noble Gas";
+function getBond(v){
+  if(v<=1) return "Noble / Non-reactive";
+  if(v<=3) return "Weak Covalent";
+  if(v<=5) return "Strong Covalent";
+  if(v<=7) return "Reactive Covalent";
+  return "Stable";
 }
 
 // ===============================
-// DROPDOWN AUTO GENERATION
+// DROPDOWN GENERATOR (FIXED)
 // ===============================
 function initDropdown(){
-  const sel = document.getElementById("element-select");
+  const sel=document.getElementById("element-select");
   if(!sel) return;
 
-  sel.innerHTML = "";
+  sel.innerHTML="";
 
   for(let i=1;i<=118;i++){
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.textContent = `${ELEMENT_SYMBOLS[i-1]} (Z=${i})`;
+    const opt=document.createElement("option");
+    opt.value=i;
+    opt.textContent=`${ELEMENT_SYMBOLS[i-1]} (Z=${i})`;
     sel.appendChild(opt);
   }
 
-  sel.value = 6;
+  sel.value=6;
 }
 
 // ===============================
-// UI HELPER
+// SAFE UI SETTER
 // ===============================
 function setText(id,val){
   const el=document.getElementById(id);
@@ -121,7 +120,7 @@ function setText(id,val){
 }
 
 // ===============================
-// MAIN LOADER (100% FIXED SYSTEM)
+// MAIN ELEMENT ENGINE (FULL SYNC FIX)
 // ===============================
 function loadElement(){
   const sel=document.getElementById("element-select");
@@ -149,7 +148,7 @@ function loadElement(){
 }
 
 // ===============================
-// ATOM SIMULATION (STABLE 118 SUPPORT)
+// ATOM 3D ENGINE (STABLE)
 // ===============================
 class AtomRenderer{
   constructor(id){
@@ -232,12 +231,86 @@ class AtomRenderer{
 }
 
 // ===============================
+// ORBITAL CLOUD VISUALIZATION (REAL)
+// ===============================
+class OrbitalRenderer{
+  constructor(id){
+    const canvas=document.getElementById(id);
+    if(!canvas || typeof THREE==="undefined") return;
+
+    this.scene=new THREE.Scene();
+    this.camera=new THREE.PerspectiveCamera(75,1,0.1,1000);
+    this.camera.position.z=5;
+
+    this.renderer=new THREE.WebGLRenderer({canvas,alpha:true});
+    this.renderer.setSize(350,350);
+
+    this.cloud=new THREE.Group();
+    this.scene.add(this.cloud);
+
+    this.set("s");
+    this.animate();
+  }
+
+  set(type){
+    while(this.cloud.children.length){
+      this.cloud.remove(this.cloud.children[0]);
+    }
+
+    const N=600;
+
+    for(let i=0;i<N;i++){
+      let x,y,z;
+
+      if(type==="s"){
+        let r=Math.random()*1.5;
+        let t=Math.random()*Math.PI*2;
+        let p=Math.random()*Math.PI;
+        x=r*Math.sin(p)*Math.cos(t);
+        y=r*Math.sin(p)*Math.sin(t);
+        z=r*Math.cos(p);
+      }
+
+      else if(type==="p"){
+        let l=Math.random()>0.5?1:-1;
+        x=l*Math.random()*1.2;
+        y=(Math.random()-0.5)*0.5;
+        z=(Math.random()-0.5)*0.5;
+      }
+
+      else{
+        let a=Math.random()*Math.PI*2;
+        let r=Math.random()*1.2;
+        x=r*Math.cos(a);
+        y=r*Math.sin(a);
+        z=(Math.random()-0.5);
+      }
+
+      const p=new THREE.Mesh(
+        new THREE.SphereGeometry(0.03,6,6),
+        new THREE.MeshBasicMaterial({color:0x8b5cf6})
+      );
+
+      p.position.set(x,y,z);
+      this.cloud.add(p);
+    }
+  }
+
+  animate(){
+    requestAnimationFrame(()=>this.animate());
+    this.cloud.rotation.y+=0.003;
+    this.renderer.render(this.scene,this.camera);
+  }
+}
+
+// ===============================
 // INIT SYSTEM
 // ===============================
 window.addEventListener("DOMContentLoaded",()=>{
   initDropdown();
 
   window.atomRenderer=new AtomRenderer("atom-canvas");
+  window.orbitalRenderer=new OrbitalRenderer("orbital-canvas");
 
   const sel=document.getElementById("element-select");
   sel.addEventListener("change",loadElement);
