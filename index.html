@@ -1,53 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Atomic + Molecular Lab</title>
-  <style>
-    body { margin: 0; font-family: Arial; overflow: hidden; background:#060a18; color:white; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Data Analytics Learning Hub</title>
 
-    #ui {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      width: 340px;
-      background: rgba(0,0,0,0.7);
-      padding: 12px;
-      border-radius: 12px;
-      z-index: 10;
-    }
+  <link rel="stylesheet" href="style.css"/>
 
-    select, input, button {
-      width: 100%;
-      margin-top: 8px;
-      padding: 6px;
-    }
-
-    #info { margin-top: 10px; font-size: 13px; line-height: 1.5; }
-
-    canvas { display:block; }
-  </style>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
-<div id="ui">
-  <h3>Atomic + Molecular Lab</h3>
+  <header>
+    <h1>Data Analytics & Data Visualization Hub</h1>
+    <p>Learn from Basics → Advanced with Interactive Simulations</p>
+  </header>
 
-  <select id="elementSelect"></select>
-  <button onclick="loadAtom()">Load Atom</button>
+  <nav>
+    <a href="#basics">Basics</a>
+    <a href="#intermediate">Intermediate</a>
+    <a href="#advanced">Advanced</a>
+    <a href="#simulation">Simulation Lab</a>
+    <a href="#resources">Resources</a>
+    <a href="#contact">Contact</a>
+  </nav>
 
-  <hr>
+  <section class="hero">
+    <h2>Master Data Analytics Professionally</h2>
+    <p>Understand data, visualize patterns, and build real analytical thinking using interactive tools.</p>
+  </section>
 
-  <input id="molInput" placeholder="Enter molecule: H2O, CO2, NH3, CH4">
-  <button onclick="buildMolecule()">Build Molecule</button>
+  <!-- BASICS -->
+  <section id="basics">
+    <h2>📊 Basics of Data Analytics</h2>
+    <ul>
+      <li>What is Data Analytics?</li>
+      <li>Types of Data (Structured / Unstructured)</li>
+      <li>Data Cleaning Fundamentals</li>
+      <li>Mean, Median, Mode</li>
+    </ul>
+  </section>
 
-  <button onclick="resetScene()">Reset</button>
+  <!-- INTERMEDIATE -->
+  <section id="intermediate">
+    <h2>📈 Intermediate Concepts</h2>
+    <ul>
+      <li>Data Visualization Principles</li>
+      <li>Correlation & Trends</li>
+      <li>Excel / SQL Basics</li>
+      <li>Dashboard Thinking</li>
+    </ul>
+  </section>
 
-  <div id="info"></div>
-</div>
+  <!-- ADVANCED -->
+  <section id="advanced">
+    <h2>🚀 Advanced Analytics</h2>
+    <ul>
+      <li>Predictive Analytics</li>
+      <li>Regression Analysis</li>
+      <li>Machine Learning Basics</li>
+      <li>Business Intelligence Systems</li>
+    </ul>
+  </section>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="script.js"></script>
+  <!-- SIMULATION -->
+  <section id="simulation">
+    <h2>🧪 Data Visualization Simulation Lab</h2>
 
+    <div class="controls">
+      <button onclick="generateData()">Generate Dataset</button>
+      <button onclick="renderBarChart()">Bar Chart</button>
+      <button onclick="renderLineChart()">Line Chart</button>
+    </div>
+
+    <canvas id="chart" width="400" height="200"></canvas>
+
+    <p class="note">
+      This simulation helps you understand how raw data converts into visual insights.
+    </p>
+  </section>
+
+  <!-- RESOURCES -->
+  <section id="resources">
+    <h2>📚 Learning Resources</h2>
+    <ul>
+      <li>Python for Data Analysis</li>
+      <li>SQL Practice Platforms</li>
+      <li>Google Data Analytics Certificate</li>
+      <li>Kaggle Datasets</li>
+      <li>Tableau Public</li>
+    </ul>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <h2>📞 Contact Us</h2>
+    <div class="contact-box">
+      <p><b>Name:</b> Debanjan Banerjee</p>
+      <p><b>Address:</b> Kolkata, West Bengal, India</p>
+      <p><b>Phone:</b> 6289143900</p>
+      <p><b>Email:</b> banerjeedebanjan22@gmail.com</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Data Analytics Learning Hub | Built for Educational Purposes</p>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
