@@ -1,216 +1,187 @@
 /////////////////////////////////////////////////////
-// ATOMLAB ULTRA STABLE ENGINE + 3D ORBIT UPGRADE
+// ATOMLAB — FAILSAFE ENGINE (CRASH PROOF VERSION)
 /////////////////////////////////////////////////////
 
-// ===============================
-// GLOBAL STATE
-// ===============================
-window.STATE = {
-  Z: 1,
-  symbol: "H"
-};
+(function () {
 
-// ===============================
-// ELEMENT SYMBOLS (118)
-// ===============================
-const ELEMENT_SYMBOLS = [
-"H","He","Li","Be","B","C","N","O","F","Ne",
-"Na","Mg","Al","Si","P","S","Cl","Ar",
-"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
-"Ga","Ge","As","Se","Br","Kr",
-"Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
-"In","Sn","Sb","Te","I","Xe",
-"Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
-"Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
-"Tl","Pb","Bi","Po","At","Rn",
-"Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
-"Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
-];
+  // =========================
+  // SAFE START (NO CRASH EVER)
+  // =========================
+  function startWhenReady() {
 
-// ===============================
-// SAFE TEXT
-// ===============================
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.innerText = val;
-}
+    const canvas = document.getElementById("atom-canvas");
+    const selector = document.getElementById("element-select");
 
-// ===============================
-// LOAD ELEMENT
-// ===============================
-function loadElement() {
-  const sel = document.getElementById("element-select");
-  const Z = parseInt(sel.value);
+    if (!canvas || !selector || typeof THREE === "undefined") {
+      setTimeout(startWhenReady, 300);
+      return;
+    }
 
-  const symbol = ELEMENT_SYMBOLS[Z - 1];
+    console.log("ATOM ENGINE STARTED");
 
-  window.STATE.Z = Z;
-  window.STATE.symbol = symbol;
+    // =========================
+    // STATE
+    // =========================
+    const STATE = {
+      Z: 1,
+      symbol: "H"
+    };
 
-  setText("el-symbol", symbol);
-  setText("el-z", Z);
-  setText("el-protons", Z);
-  setText("el-electrons", Z);
-  setText("el-mass", (Z * 2.2).toFixed(2));
+    // =========================
+    // SYMBOLS
+    // =========================
+    const SYMBOLS = [
+      "H","He","Li","Be","B","C","N","O","F","Ne",
+      "Na","Mg","Al","Si","P","S","Cl","Ar",
+      "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
+      "Ga","Ge","As","Se","Br","Kr",
+      "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
+      "In","Sn","Sb","Te","I","Xe",
+      "Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
+      "Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
+      "Tl","Pb","Bi","Po","At","Rn",
+      "Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
+      "Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
+    ];
 
-  window.atomRenderer?.update(Z);
+    // =========================
+    // UI SAFE UPDATE
+    // =========================
+    function setText(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = val;
+    }
 
-  console.log("Loaded:", symbol, Z);
-}
+    // =========================
+    // THREE SETUP
+    // =========================
+    const scene = new THREE.Scene();
 
-// ===============================
-// ATOM RENDERER (FULL 3D ORBIT SYSTEM)
-// ===============================
-class AtomRenderer {
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    camera.position.z = 15;
 
-  constructor(id) {
-
-    const canvas = document.getElementById(id);
-
-    this.scene = new THREE.Scene();
-
-    this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
-    this.camera.position.z = 14;
-
-    this.renderer = new THREE.WebGLRenderer({
+    const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
       antialias: true
     });
 
-    this.renderer.setSize(350, 350);
+    renderer.setSize(400, 400);
 
     // nucleus
-    this.nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.6, 24, 24),
+    const nucleus = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7, 24, 24),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
 
-    this.scene.add(this.nucleus);
+    scene.add(nucleus);
 
-    this.electrons = [];
-    this.orbits = [];
+    let electrons = [];
 
-    this.update(1);
-    this.animate();
-  }
+    // =========================
+    // BUILD ATOM (SAFE)
+    // =========================
+    function build(Z) {
 
-  // shell structure
-  shells() {
-    return [2, 8, 18, 32, 50, 72, 98];
-  }
+      electrons.forEach(e => scene.remove(e));
+      electrons = [];
 
-  // ===============================
-  // BUILD ATOM
-  // ===============================
-  update(Z) {
+      const shells = [2, 8, 18, 32, 50, 72, 98];
 
-    this.electrons.forEach(e => this.scene.remove(e));
-    this.orbits.forEach(o => this.scene.remove(o));
+      let remaining = Z;
+      let base = 2;
 
-    this.electrons = [];
-    this.orbits = [];
+      for (let s = 0; s < shells.length; s++) {
 
-    let remaining = Z;
-    let base = 2;
+        if (remaining <= 0) break;
 
-    for (let s = 0; s < this.shells().length; s++) {
+        const count = Math.min(shells[s], remaining);
+        const radius = base + s * 1.7;
 
-      if (remaining <= 0) break;
+        for (let i = 0; i < count; i++) {
 
-      const count = Math.min(this.shells()[s], remaining);
-      const radius = base + s * 1.8;
+          const e = new THREE.Mesh(
+            new THREE.SphereGeometry(0.12, 12, 12),
+            new THREE.MeshBasicMaterial({ color: 0x00d4ff })
+          );
 
-      // =========================
-      // ORBIT RING (3D TILTED)
-      // =========================
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(radius, 0.02, 16, 160),
-        new THREE.MeshBasicMaterial({
-          color: 0xffffff,
-          transparent: true,
-          opacity: 0.25
-        })
-      );
+          e.userData = {
+            angle: Math.random() * Math.PI * 2,
+            radius: radius,
+            speed: 0.015 + s * 0.002,
+            tiltX: Math.random() * 0.6,
+            tiltY: Math.random() * 0.6
+          };
 
-      // RANDOM 3D ORIENTATION (KEY FIX)
-      ring.rotation.x = Math.random() * Math.PI;
-      ring.rotation.y = Math.random() * Math.PI;
-      ring.rotation.z = Math.random() * Math.PI;
+          scene.add(e);
+          electrons.push(e);
+        }
 
-      this.scene.add(ring);
-      this.orbits.push(ring);
+        remaining -= count;
+      }
+    }
 
-      // =========================
-      // ELECTRONS (3D MOTION)
-      // =========================
-      for (let i = 0; i < count; i++) {
+    // =========================
+    // UPDATE ELEMENT
+    // =========================
+    function updateElement() {
 
-        const e = new THREE.Mesh(
-          new THREE.SphereGeometry(0.12, 14, 14),
-          new THREE.MeshBasicMaterial({ color: 0x00d4ff })
-        );
+      const Z = parseInt(selector.value);
 
-        e.userData = {
-          angle: (i / count) * Math.PI * 2,
-          radius: radius,
-          speed: 0.015 + s * 0.002,
+      STATE.Z = Z;
+      STATE.symbol = SYMBOLS[Z - 1];
 
-          // 3D orbital tilt factors
-          tiltX: Math.random() * 0.8,
-          tiltY: Math.random() * 0.8,
-          tiltZ: Math.random() * 0.8
-        };
+      setText("el-symbol", STATE.symbol);
+      setText("el-z", Z);
 
-        this.scene.add(e);
-        this.electrons.push(e);
+      build(Z);
+
+      console.log("Loaded:", STATE.symbol, Z);
+    }
+
+    // =========================
+    // SAFE LISTENER
+    // =========================
+    selector.addEventListener("change", updateElement);
+
+    // =========================
+    // ANIMATION LOOP
+    // =========================
+    function animate() {
+
+      requestAnimationFrame(animate);
+
+      for (let e of electrons) {
+
+        e.userData.angle += e.userData.speed;
+
+        const r = e.userData.radius;
+
+        let x = Math.cos(e.userData.angle) * r;
+        let y = Math.sin(e.userData.angle) * r;
+        let z = Math.sin(e.userData.angle) * 0.5 * r;
+
+        // 3D tilt
+        const tx = e.userData.tiltX;
+        const ty = e.userData.tiltY;
+
+        e.position.x = x * Math.cos(tx) - z * Math.sin(tx);
+        e.position.z = z * Math.cos(tx) + x * Math.sin(tx);
+        e.position.y = y * Math.cos(ty);
       }
 
-      remaining -= count;
-    }
-  }
-
-  // ===============================
-  // ANIMATION (TRUE 3D ORBIT MOTION)
-  // ===============================
-  animate() {
-
-    requestAnimationFrame(() => this.animate());
-
-    for (let e of this.electrons) {
-
-      e.userData.angle += e.userData.speed;
-
-      const r = e.userData.radius;
-
-      // base orbit path
-      let x = Math.cos(e.userData.angle) * r;
-      let y = Math.sin(e.userData.angle) * r;
-      let z = Math.sin(e.userData.angle * 0.7) * r * 0.6;
-
-      // apply 3D tilting transforms
-      const tx = e.userData.tiltX;
-      const ty = e.userData.tiltY;
-      const tz = e.userData.tiltZ;
-
-      e.position.x = x * Math.cos(tx) - z * Math.sin(tx);
-      e.position.y = y * Math.cos(ty) - z * Math.sin(ty);
-      e.position.z = z * Math.cos(tz) + x * Math.sin(tz);
+      renderer.render(scene, camera);
     }
 
-    this.renderer.render(this.scene, this.camera);
+    // =========================
+    // START
+    // =========================
+    build(1);
+    animate();
+    updateElement();
+
   }
-}
 
-// ===============================
-// INIT SYSTEM
-// ===============================
-window.addEventListener("DOMContentLoaded", () => {
+  startWhenReady();
 
-  window.atomRenderer = new AtomRenderer("atom-canvas");
-
-  const sel = document.getElementById("element-select");
-  sel.addEventListener("change", loadElement);
-
-  loadElement();
-});
+})();
