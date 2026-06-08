@@ -1,14 +1,11 @@
 /////////////////////////////////////////////////////
-// ATOMLAB — FINAL 3D ATOM ENGINE (VIDEO MATCH STYLE)
+// ATOMLAB — FINAL BULLETPROOF ENGINE (118 ELEMENT FIX)
 /////////////////////////////////////////////////////
 
-// ===============================
-// GLOBAL STATE (SAFE)
-// ===============================
 window.STATE = { Z: 1, symbol: "H" };
 
 // ===============================
-// ELEMENTS
+// FULL PERIODIC TABLE (ONLY SOURCE OF TRUTH)
 // ===============================
 const SYMBOLS = [
 "H","He","Li","Be","B","C","N","O","F","Ne",
@@ -25,7 +22,7 @@ const SYMBOLS = [
 ];
 
 // ===============================
-// SAFE UI UPDATE
+// SAFE TEXT UPDATE
 // ===============================
 function setText(id, val) {
   const el = document.getElementById(id);
@@ -33,52 +30,57 @@ function setText(id, val) {
 }
 
 // ===============================
-// 🔥 ROBUST ELEMENT DETECTOR (FIXES HYDROGEN BUG)
+// 🔥 FORCE Z-BASED SELECTION (NO HTML DEPENDENCY BUGS)
 // ===============================
-function getCurrentElement() {
+function getSelectedZ() {
   const sel = document.getElementById("element-select");
 
-  if (!sel) return { Z: 1, symbol: "H" };
+  if (!sel) return 1;
 
-  const value = sel.value;
-  const text = sel.options?.[sel.selectedIndex]?.text || "";
+  let raw = sel.value;
 
-  // CASE 1: numeric Z
-  const Z = parseInt(value);
-  if (!isNaN(Z) && Z >= 1 && Z <= 118) {
-    return { Z, symbol: SYMBOLS[Z - 1] };
-  }
+  // CASE 1: already number
+  let Z = parseInt(raw);
 
-  // CASE 2: symbol in value or text
+  if (!isNaN(Z) && Z >= 1 && Z <= 118) return Z;
+
+  // CASE 2: symbol
+  let idx = SYMBOLS.indexOf(raw);
+  if (idx !== -1) return idx + 1;
+
+  // CASE 3: fallback from selected text (VERY IMPORTANT FIX)
+  let text = sel.options?.[sel.selectedIndex]?.text || "";
+
   for (let i = 0; i < SYMBOLS.length; i++) {
-    if (value === SYMBOLS[i] || text.includes(SYMBOLS[i])) {
-      return { Z: i + 1, symbol: SYMBOLS[i] };
-    }
+    if (text.includes(SYMBOLS[i])) return i + 1;
   }
 
-  return { Z: 1, symbol: "H" };
+  return 1;
 }
 
 // ===============================
-// LOAD ELEMENT (SYNC UI + SIMULATION)
+// LOAD ELEMENT (ABSOLUTE FIX)
 // ===============================
 function loadElement() {
-  const el = getCurrentElement();
+  const Z = getSelectedZ();
+  const symbol = SYMBOLS[Z - 1];
 
-  window.STATE.Z = el.Z;
-  window.STATE.symbol = el.symbol;
+  window.STATE.Z = Z;
+  window.STATE.symbol = symbol;
 
-  setText("el-symbol", el.symbol);
-  setText("el-z", el.Z);
-  setText("el-protons", el.Z);
-  setText("el-electrons", el.Z);
-  setText("el-mass", (el.Z * 2.1).toFixed(2));
+  // UI
+  setText("el-symbol", symbol);
+  setText("el-z", Z);
+  setText("el-protons", Z);
+  setText("el-electrons", Z);
+  setText("el-mass", (Z * 2.1).toFixed(2));
 
-  window.atomEngine?.update(el.Z);
+  // SIMULATION UPDATE
+  window.atomEngine?.update(Z);
 }
 
 // ===============================
-// NAV SAFE (DO NOT BREAK YOUR SITE)
+// NAV SAFE
 // ===============================
 window.showPage = function (id) {
   document.querySelectorAll("div[id^='page-']")
@@ -87,13 +89,11 @@ window.showPage = function (id) {
   const target = document.getElementById("page-" + id);
   if (target) target.style.display = "flex";
 
-  if (id === "atomic") {
-    loadElement();
-  }
+  if (id === "atomic") loadElement();
 };
 
 // ===============================
-// ⭐ REAL 3D ATOM ENGINE (VIDEO MATCH)
+// ⭐ FULL 3D ATOM ENGINE (STABLE + ALL 118 ELEMENTS)
 // ===============================
 class AtomEngine {
   constructor(canvasId) {
@@ -113,9 +113,6 @@ class AtomEngine {
 
     this.renderer.setSize(350, 350);
 
-    // ===============================
-    // DRAG ROTATION (3D)
-    // ===============================
     this.rx = 0;
     this.ry = 0;
     this.drag = false;
@@ -143,7 +140,6 @@ class AtomEngine {
       new THREE.SphereGeometry(0.8, 32, 32),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
-
     this.scene.add(this.nucleus);
 
     this.electrons = [];
@@ -153,7 +149,6 @@ class AtomEngine {
     this.animate();
   }
 
-  // shell system
   shells() {
     return [2, 8, 18, 32, 50, 72, 98];
   }
@@ -161,6 +156,7 @@ class AtomEngine {
   update(Z) {
     Z = Math.max(1, Math.min(118, Number(Z) || 1));
 
+    // clear old
     this.electrons.forEach(e => this.scene.remove(e));
     this.rings.forEach(r => this.scene.remove(r));
 
@@ -176,9 +172,7 @@ class AtomEngine {
       const count = Math.min(this.shells()[s], remaining);
       const radius = base + s * 1.7;
 
-      // ===============================
-      // ORBIT RING (VISIBLE + TILTED)
-      // ===============================
+      // ORBIT RING (3D TILTED)
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(radius, 0.015, 12, 140),
         new THREE.MeshBasicMaterial({
@@ -195,9 +189,7 @@ class AtomEngine {
       this.scene.add(ring);
       this.rings.push(ring);
 
-      // ===============================
-      // ELECTRONS (TRUE 3D MOTION)
-      // ===============================
+      // ELECTRONS
       for (let i = 0; i < count; i++) {
         const e = new THREE.Mesh(
           new THREE.SphereGeometry(0.13, 14, 14),
@@ -207,8 +199,7 @@ class AtomEngine {
         e.userData = {
           angle: (i / count) * Math.PI * 2,
           radius,
-          speed: 0.02 + s * 0.002,
-          tilt: ring.rotation
+          speed: 0.02 + s * 0.002
         };
 
         this.scene.add(e);
@@ -232,7 +223,7 @@ class AtomEngine {
 
       e.position.x = Math.cos(e.userData.angle) * r;
       e.position.y = Math.sin(e.userData.angle) * r;
-      e.position.z = Math.sin(e.userData.angle * 0.65) * r * 0.45;
+      e.position.z = Math.sin(e.userData.angle * 0.7) * r * 0.45;
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -240,28 +231,16 @@ class AtomEngine {
 }
 
 // ===============================
-// 🔥 AUTO DETECTION (NO HTML DEPENDENCY BUGS)
-// ===============================
-function startAutoSync() {
-  const sel = document.getElementById("element-select");
-  if (!sel) return;
-
-  let last = sel.value;
-
-  setInterval(() => {
-    if (sel.value !== last) {
-      last = sel.value;
-      loadElement();
-    }
-  }, 200);
-}
-
-// ===============================
-// INIT
+// INIT (NO FAIL MODE)
 // ===============================
 window.addEventListener("DOMContentLoaded", () => {
   window.atomEngine = new AtomEngine("atom-canvas");
 
+  const sel = document.getElementById("element-select");
+
+  if (sel) {
+    sel.addEventListener("change", loadElement);
+  }
+
   loadElement();
-  startAutoSync();
 });
