@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////
-// ATOMLAB FINAL MASTER ENGINE (FULL FIXED BUILD)
+// ATOMLAB MASTER FIXED ENGINE (STABLE + SAFE + FULL)
 /////////////////////////////////////////////////////
 
 // ===============================
@@ -11,7 +11,7 @@ window.STATE = {
 };
 
 // ===============================
-// ELEMENT LIST (118)
+// 118 ELEMENT SYMBOLS
 // ===============================
 const ELEMENT_SYMBOLS = [
 "H","He","Li","Be","B","C","N","O","F","Ne",
@@ -36,43 +36,59 @@ function setText(id,val){
 }
 
 // ===============================
-// LOAD ELEMENT (FIXED SYNC)
+// FIX: ROBUST ELEMENT PARSER
+// (handles BOTH symbol and number)
+// ===============================
+function resolveZ(value){
+  if(!value) return 1;
+
+  // numeric
+  if(!isNaN(value)) return parseInt(value);
+
+  // symbol
+  const idx = ELEMENT_SYMBOLS.indexOf(value);
+  if(idx !== -1) return idx + 1;
+
+  return 1;
+}
+
+// ===============================
+// ELEMENT LOADER (FIXED SYNC)
 // ===============================
 function loadElement(){
   const sel=document.getElementById("element-select");
   if(!sel) return;
 
-  const Z=parseInt(sel.value);
-  const symbol=ELEMENT_SYMBOLS[Z-1];
+  const Z = resolveZ(sel.value);
+  const symbol = ELEMENT_SYMBOLS[Z-1];
 
-  window.STATE.Z=Z;
-  window.STATE.symbol=symbol;
+  window.STATE.Z = Z;
+  window.STATE.symbol = symbol;
 
-  setText("el-symbol",symbol);
-  setText("el-z",Z);
-  setText("el-protons",Z);
-  setText("el-electrons",Z);
+  setText("el-symbol", symbol);
+  setText("el-z", Z);
+  setText("el-protons", Z);
+  setText("el-electrons", Z);
 
-  // safe fallback mass
-  setText("el-mass",(Z*2.2).toFixed(2));
+  // safe mass estimate
+  setText("el-mass", (Z * 2.2).toFixed(2));
 
-  // trigger atom update
   window.atomRenderer?.update(Z);
 }
 
 // ===============================
-// NAVIGATION (DO NOT BREAK HTML)
+// NAVIGATION SAFE
 // ===============================
 function showPage(id){
   document.querySelectorAll("div[id^='page-']")
-    .forEach(p=>p.style.display="none");
+    .forEach(p => p.style.display = "none");
 
-  const target=document.getElementById("page-"+id);
-  if(target) target.style.display="flex";
+  const target = document.getElementById("page-" + id);
+  if(target) target.style.display = "flex";
 }
 
 // ===============================
-// ATOM RENDERER (WORKING FOR ALL ELEMENTS)
+// ATOM RENDERER (FIXED ELECTRONS)
 // ===============================
 class AtomRenderer{
   constructor(id){
@@ -87,6 +103,7 @@ class AtomRenderer{
     this.renderer.setSize(350,350);
 
     this.electrons=[];
+
     this.nucleus=new THREE.Mesh(
       new THREE.SphereGeometry(0.5,16,16),
       new THREE.MeshBasicMaterial({color:0xff4444})
@@ -123,14 +140,14 @@ class AtomRenderer{
         this.electrons.push({
           mesh,
           angle,
-          radius:base+s*1.4,
-          speed:0.02+s*0.002
+          radius: base + s * 1.4,
+          speed: 0.02 + s * 0.002
         });
 
         this.scene.add(mesh);
       }
 
-      remaining-=count;
+      remaining -= count;
     }
   }
 
@@ -142,9 +159,9 @@ class AtomRenderer{
     requestAnimationFrame(()=>this.animate());
 
     this.electrons.forEach(e=>{
-      e.angle+=e.speed;
-      e.mesh.position.x=Math.cos(e.angle)*e.radius;
-      e.mesh.position.y=Math.sin(e.angle)*e.radius;
+      e.angle += e.speed;
+      e.mesh.position.x = Math.cos(e.angle) * e.radius;
+      e.mesh.position.y = Math.sin(e.angle) * e.radius;
     });
 
     this.renderer.render(this.scene,this.camera);
@@ -152,7 +169,8 @@ class AtomRenderer{
 }
 
 // ===============================
-// ORBITAL EXPLORER (FULL FIXED)
+// ORBITAL EXPLORER (FIXED FOR R128)
+// NO CapsuleGeometry (REMOVED)
 // ===============================
 class OrbitalExplorer{
   constructor(id){
@@ -178,25 +196,46 @@ class OrbitalExplorer{
 
     let geometry;
 
-    // REAL ORBITAL VISUALS
+    // ===============================
+    // SAFE ORBITAL VISUALS (R128 COMPATIBLE)
+    // ===============================
     if(type==="s"){
-      geometry=new THREE.SphereGeometry(1.2,32,32);
+      geometry = new THREE.SphereGeometry(1.2,32,32);
     }
 
     else if(type==="p"){
-      geometry=new THREE.CapsuleGeometry(0.4,2,16,16);
+      // dumbbell = 2 spheres
+      const group = new THREE.Group();
+
+      const mat = new THREE.MeshBasicMaterial({
+        color:0x7c3aed,
+        wireframe:true
+      });
+
+      const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.6,16,16), mat);
+      const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.6,16,16), mat);
+
+      s1.position.x = -1;
+      s2.position.x =  1;
+
+      group.add(s1);
+      group.add(s2);
+
+      this.mesh = group;
+      this.scene.add(this.mesh);
+      return;
     }
 
     else if(type==="d"){
-      geometry=new THREE.TorusKnotGeometry(0.8,0.25,120,16);
+      geometry = new THREE.TorusGeometry(1,0.35,16,100);
     }
 
     else if(type==="f"){
-      geometry=new THREE.IcosahedronGeometry(1.3,1);
+      geometry = new THREE.IcosahedronGeometry(1.3,1);
     }
 
     else{
-      geometry=new THREE.SphereGeometry(1,16,16);
+      geometry = new THREE.SphereGeometry(1,16,16);
     }
 
     this.mesh=new THREE.Mesh(
@@ -213,9 +252,9 @@ class OrbitalExplorer{
   animate(){
     requestAnimationFrame(()=>this.animate());
 
-    if(this.mesh){
-      this.mesh.rotation.x+=0.005;
-      this.mesh.rotation.y+=0.01;
+    if(this.mesh && this.mesh.rotation){
+      this.mesh.rotation.x += 0.005;
+      this.mesh.rotation.y += 0.01;
     }
 
     this.renderer.render(this.scene,this.camera);
@@ -223,27 +262,26 @@ class OrbitalExplorer{
 }
 
 // ===============================
-// ORBITAL CLICK HANDLER (YOUR HTML USES THIS)
+// ORBITAL SELECT (FROM HTML BUTTONS)
 // ===============================
 function selectOrbital(type,label){
-  window.orbitalExplorer.setOrbital(type);
+  window.orbitalExplorer?.setOrbital(type);
 
   const chip=document.getElementById("orbital-name-chip");
-  if(chip) chip.innerText=label+" orbital";
+  if(chip) chip.innerText = label + " orbital";
 }
 
 // ===============================
-// INIT EVERYTHING
+// INIT SYSTEM
 // ===============================
 window.addEventListener("DOMContentLoaded",()=>{
 
-  window.atomRenderer=new AtomRenderer("atom-canvas");
+  window.atomRenderer = new AtomRenderer("atom-canvas");
+  window.orbitalExplorer = new OrbitalExplorer("orbital-canvas");
 
-  window.orbitalExplorer=new OrbitalExplorer("orbital-canvas");
-
-  const sel=document.getElementById("element-select");
+  const sel = document.getElementById("element-select");
   if(sel){
-    sel.addEventListener("change",loadElement);
+    sel.addEventListener("change", loadElement);
   }
 
   loadElement();
