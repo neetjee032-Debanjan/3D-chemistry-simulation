@@ -1,254 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>AtomLab</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-<style>
-body { margin:0; font-family:Arial; background:#0b0f1a; color:white; }
-#container { display:flex; }
-
-.sidebar {
-  width:200px;
-  padding:10px;
-  background:#111827;
-}
-
-.main {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-}
-
-canvas {
-  background:transparent;
-}
-button, select {
-  width:100%;
-  margin:5px 0;
-}
-.page { display:none; }
-.page.active { display:block; }
-</style>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atom Simulation 3D</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root{
+      --bg:#060a14;--panel:#111827;--border:#1e3050;--accent:#00d4ff;--accent2:#7c3aed;
+      --accent3:#10b981;--gold:#f59e0b;--text:#e2e8f0;--text2:#94a3b8;--rad:12px;
+      --font:Segoe UI,system-ui,sans-serif
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+    .app{display:grid;grid-template-columns:340px 1fr;min-height:100vh}
+    .side{padding:16px;background:#09111f;border-right:1px solid var(--border);overflow:auto}
+    .main{padding:16px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;margin-bottom:16px}
+    .card h3{margin:0;padding:14px 16px;border-bottom:1px solid var(--border);color:var(--accent);font-size:14px}
+    .card .body{padding:16px}
+    select,button{width:100%;background:#0d1424;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px}
+    button{cursor:pointer;background:rgba(0,212,255,.1);color:var(--accent);margin-top:10px}
+    button:hover{background:rgba(0,212,255,.18)}
+    .canvas-wrap{height:calc(100vh - 32px);min-height:680px;background:radial-gradient(circle at center,#0d1a2e 0,#060a14 100%);border:1px solid var(--border);border-radius:var(--rad);position:relative;overflow:hidden}
+    canvas{display:block;width:100%!important;height:100%!important}
+    .overlay{position:absolute;top:12px;left:12px;z-index:2;display:flex;gap:8px;flex-wrap:wrap}
+    .chip{background:rgba(6,10,20,.8);border:1px solid var(--border);border-radius:999px;padding:5px 10px;font-size:11px;color:var(--text2)}
+    .hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:2;background:rgba(6,10,20,.7);border:1px solid var(--border);border-radius:999px;padding:5px 10px;font-size:11px;color:var(--text2)}
+    .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(30,48,80,.55);font-size:13px}
+    .row:last-child{border-bottom:none}.label{color:var(--text2)} .value{font-weight:600}
+    @media (max-width:900px){.app{grid-template-columns:1fr}.canvas-wrap{height:70vh;min-height:500px}.side{border-right:none;border-bottom:1px solid var(--border)}}
+  </style>
 </head>
-
 <body>
-
-<div id="container">
-
-  <div class="sidebar">
-    <button onclick="showPage('atomic')">Atomic</button>
-    <button onclick="showPage('orbital')">Orbital</button>
-    <button onclick="showPage('bonding')">Bonding</button>
-
-    <hr/>
-
-    <select id="element-select"></select>
-
-    <div>
-      <p>Element: <span id="el-symbol"></span></p>
-      <p>Z: <span id="el-z"></span></p>
-      <p>Protons: <span id="el-protons"></span></p>
-      <p>Electrons: <span id="el-electrons"></span></p>
+<div class="app">
+  <div class="side">
+    <div class="card">
+      <h3>Element</h3>
+      <div class="body">
+        <select id="element-select"></select>
+        <button id="toggle-spin">Toggle Animation</button>
+        <button id="toggle-nucleus">Toggle Nucleus</button>
+        <button id="reset-view">Reset View</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Properties</h3>
+      <div class="body" id="info"></div>
+    </div>
+    <div class="card">
+      <h3>Shells</h3>
+      <div class="body" id="shells"></div>
     </div>
   </div>
-
   <div class="main">
-
-    <div id="page-atomic" class="page active">
+    <div class="canvas-wrap">
+      <div class="overlay">
+        <div class="chip" id="chip-name">Hydrogen</div>
+        <div class="chip" id="chip-config">1s1</div>
+      </div>
       <canvas id="atom-canvas"></canvas>
+      <div class="hint">Drag to rotate • Scroll to zoom</div>
     </div>
-
-    <div id="page-orbital" class="page">
-      <h2>Orbital Page</h2>
-    </div>
-
-    <div id="page-bonding" class="page">
-      <h2>Bonding Page</h2>
-    </div>
-
   </div>
-
 </div>
 
-<script>
-/////////////////////////////////////////////////////
-// ATOMLAB CLEAN WORKING ENGINE (NO BUG VERSION)
-/////////////////////////////////////////////////////
-
-const SYMBOLS = [
-"H","He","Li","Be","B","C","N","O","F","Ne",
-"Na","Mg","Al","Si","P","S","Cl","Ar",
-"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn",
-"Ga","Ge","As","Se","Br","Kr",
-"Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd",
-"In","Sn","Sb","Te","I","Xe",
-"Cs","Ba","La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu",
-"Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg",
-"Tl","Pb","Bi","Po","At","Rn",
-"Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
-"Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
-];
-
-// ---------------------
-// STATE
-// ---------------------
-let Z = 1;
-
-// ---------------------
-// UI INIT
-// ---------------------
-function initDropdown() {
-  const sel = document.getElementById("element-select");
-
-  SYMBOLS.forEach((s, i) => {
-    const opt = document.createElement("option");
-    opt.value = i + 1;
-    opt.innerText = `${s} (${i+1})`;
-    sel.appendChild(opt);
-  });
-
-  sel.value = 1;
-}
-
-// ---------------------
-// UI UPDATE
-// ---------------------
-function updateUI() {
-  const symbol = SYMBOLS[Z - 1];
-
-  document.getElementById("el-symbol").innerText = symbol;
-  document.getElementById("el-z").innerText = Z;
-  document.getElementById("el-protons").innerText = Z;
-  document.getElementById("el-electrons").innerText = Z;
-}
-
-// ---------------------
-// PAGE SWITCH
-// ---------------------
-function showPage(id) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.getElementById("page-" + id).classList.add("active");
-}
-
-// ---------------------
-// THREE JS ATOM ENGINE
-// ---------------------
-class Atom {
-  constructor() {
-    const canvas = document.getElementById("atom-canvas");
-
-    this.scene = new THREE.Scene();
-
-    this.camera = new THREE.PerspectiveCamera(60,1,0.1,1000);
-    this.camera.position.z = 18;
-
-    this.renderer = new THREE.WebGLRenderer({
-      canvas,
-      alpha:true,
-      antialias:true
-    });
-
-    this.renderer.setSize(500,500);
-
-    // nucleus
-    const nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(1,32,32),
-      new THREE.MeshBasicMaterial({color:0xff4444})
-    );
-
-    this.scene.add(nucleus);
-
-    this.electrons = [];
-
-    this.animate();
-  }
-
-  build(Z) {
-
-    this.electrons.forEach(e => this.scene.remove(e));
-    this.electrons = [];
-
-    const shells = [2,8,18,32,50,72,98];
-
-    let remaining = Z;
-    let base = 2;
-
-    for(let s=0;s<shells.length;s++) {
-
-      if(remaining<=0) break;
-
-      const count = Math.min(shells[s], remaining);
-      const radius = base + s*2;
-
-      for(let i=0;i<count;i++) {
-
-        const e = new THREE.Mesh(
-          new THREE.SphereGeometry(0.15,16,16),
-          new THREE.MeshBasicMaterial({color:0x00d4ff})
-        );
-
-        e.userData = {
-          angle: (i/count)*Math.PI*2,
-          radius: radius,
-          speed: 0.02 + s*0.002
-        };
-
-        this.scene.add(e);
-        this.electrons.push(e);
-      }
-
-      remaining -= count;
-    }
-  }
-
-  update(Z) {
-    this.build(Z);
-  }
-
-  animate() {
-    requestAnimationFrame(()=>this.animate());
-
-    this.electrons.forEach(e=>{
-      e.userData.angle += e.userData.speed;
-
-      e.position.x = Math.cos(e.userData.angle)*e.userData.radius;
-      e.position.y = Math.sin(e.userData.angle)*e.userData.radius;
-    });
-
-    this.renderer.render(this.scene,this.camera);
-  }
-}
-
-// ---------------------
-// INIT SYSTEM
-// ---------------------
-let atom;
-
-window.addEventListener("DOMContentLoaded", ()=> {
-
-  initDropdown();
-
-  atom = new Atom();
-
-  const sel = document.getElementById("element-select");
-
-  sel.addEventListener("change", ()=> {
-    Z = parseInt(sel.value);
-    updateUI();
-    atom.update(Z);
-  });
-
-  Z = 1;
-  updateUI();
-  atom.update(1);
-});
-</script>
-
+<script src="atom.js"></script>
 </body>
 </html>
