@@ -1,11 +1,14 @@
 /////////////////////////////////////////////////////
-// ATOMLAB — FINAL FIXED ENGINE v2 (STABLE + ACCURATE)
+// ATOMLAB — FINAL 3D ATOM ENGINE (VIDEO MATCH STYLE)
 /////////////////////////////////////////////////////
 
+// ===============================
+// GLOBAL STATE (SAFE)
+// ===============================
 window.STATE = { Z: 1, symbol: "H" };
 
 // ===============================
-// FULL PERIODIC TABLE
+// ELEMENTS
 // ===============================
 const SYMBOLS = [
 "H","He","Li","Be","B","C","N","O","F","Ne",
@@ -30,54 +33,52 @@ function setText(id, val) {
 }
 
 // ===============================
-// 🔥 FIXED ELEMENT PARSER (CORE FIX)
+// 🔥 ROBUST ELEMENT DETECTOR (FIXES HYDROGEN BUG)
 // ===============================
-function getElementFromSelect(sel) {
-  let value = sel.value;
+function getCurrentElement() {
+  const sel = document.getElementById("element-select");
 
-  // CASE 1: already number (1–118)
-  if (!isNaN(value)) {
-    const Z = parseInt(value);
-    return { Z, symbol: SYMBOLS[Z - 1] || "H" };
+  if (!sel) return { Z: 1, symbol: "H" };
+
+  const value = sel.value;
+  const text = sel.options?.[sel.selectedIndex]?.text || "";
+
+  // CASE 1: numeric Z
+  const Z = parseInt(value);
+  if (!isNaN(Z) && Z >= 1 && Z <= 118) {
+    return { Z, symbol: SYMBOLS[Z - 1] };
   }
 
-  // CASE 2: symbol (H, C, O...)
-  const index = SYMBOLS.indexOf(value);
-  if (index !== -1) {
-    return { Z: index + 1, symbol: value };
+  // CASE 2: symbol in value or text
+  for (let i = 0; i < SYMBOLS.length; i++) {
+    if (value === SYMBOLS[i] || text.includes(SYMBOLS[i])) {
+      return { Z: i + 1, symbol: SYMBOLS[i] };
+    }
   }
 
-  // fallback
   return { Z: 1, symbol: "H" };
 }
 
 // ===============================
-// LOAD ELEMENT (FIXED)
+// LOAD ELEMENT (SYNC UI + SIMULATION)
 // ===============================
 function loadElement() {
-  const sel = document.getElementById("element-select");
-  if (!sel || !window.atomRenderer) return;
-
-  const el = getElementFromSelect(sel);
+  const el = getCurrentElement();
 
   window.STATE.Z = el.Z;
   window.STATE.symbol = el.symbol;
 
-  // UI FIXED
   setText("el-symbol", el.symbol);
   setText("el-z", el.Z);
   setText("el-protons", el.Z);
   setText("el-electrons", el.Z);
-
-  // crude but stable mass (you can improve later)
   setText("el-mass", (el.Z * 2.1).toFixed(2));
 
-  // UPDATE SIMULATION
-  window.atomRenderer.update(el.Z);
+  window.atomEngine?.update(el.Z);
 }
 
 // ===============================
-// NAVIGATION SAFE
+// NAV SAFE (DO NOT BREAK YOUR SITE)
 // ===============================
 window.showPage = function (id) {
   document.querySelectorAll("div[id^='page-']")
@@ -87,22 +88,22 @@ window.showPage = function (id) {
   if (target) target.style.display = "flex";
 
   if (id === "atomic") {
-    window.atomRenderer?.update(window.STATE.Z);
+    loadElement();
   }
 };
 
 // ===============================
-// ⭐ ATOM RENDERER (FIXED + 3D ORBITS)
+// ⭐ REAL 3D ATOM ENGINE (VIDEO MATCH)
 // ===============================
-class AtomRenderer {
-  constructor(id) {
-    const canvas = document.getElementById(id);
+class AtomEngine {
+  constructor(canvasId) {
+    const canvas = document.getElementById(canvasId);
     if (!canvas || typeof THREE === "undefined") return;
 
     this.scene = new THREE.Scene();
 
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    this.camera.position.z = 12;
+    this.camera.position.z = 14;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -112,6 +113,9 @@ class AtomRenderer {
 
     this.renderer.setSize(350, 350);
 
+    // ===============================
+    // DRAG ROTATION (3D)
+    // ===============================
     this.rx = 0;
     this.ry = 0;
     this.drag = false;
@@ -136,9 +140,10 @@ class AtomRenderer {
 
     // nucleus
     this.nucleus = new THREE.Mesh(
-      new THREE.SphereGeometry(0.7, 24, 24),
+      new THREE.SphereGeometry(0.8, 32, 32),
       new THREE.MeshBasicMaterial({ color: 0xff4444 })
     );
+
     this.scene.add(this.nucleus);
 
     this.electrons = [];
@@ -148,6 +153,7 @@ class AtomRenderer {
     this.animate();
   }
 
+  // shell system
   shells() {
     return [2, 8, 18, 32, 50, 72, 98];
   }
@@ -167,37 +173,42 @@ class AtomRenderer {
     for (let s = 0; s < this.shells().length; s++) {
       if (remaining <= 0) break;
 
-      const capacity = this.shells()[s];
-      const count = Math.min(capacity, remaining);
-      const radius = base + s * 1.6;
+      const count = Math.min(this.shells()[s], remaining);
+      const radius = base + s * 1.7;
 
-      // ORBIT RING (VISIBLE)
+      // ===============================
+      // ORBIT RING (VISIBLE + TILTED)
+      // ===============================
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(radius, 0.01, 10, 120),
+        new THREE.TorusGeometry(radius, 0.015, 12, 140),
         new THREE.MeshBasicMaterial({
           color: 0xffffff,
           transparent: true,
-          opacity: 0.2
+          opacity: 0.25
         })
       );
 
       ring.rotation.x = Math.random() * Math.PI;
       ring.rotation.y = Math.random() * Math.PI;
+      ring.rotation.z = Math.random() * Math.PI;
 
       this.scene.add(ring);
       this.rings.push(ring);
 
-      // ELECTRONS
+      // ===============================
+      // ELECTRONS (TRUE 3D MOTION)
+      // ===============================
       for (let i = 0; i < count; i++) {
         const e = new THREE.Mesh(
-          new THREE.SphereGeometry(0.12, 12, 12),
+          new THREE.SphereGeometry(0.13, 14, 14),
           new THREE.MeshBasicMaterial({ color: 0x00d4ff })
         );
 
         e.userData = {
           angle: (i / count) * Math.PI * 2,
-          radius: radius,
-          speed: 0.02 + s * 0.002
+          radius,
+          speed: 0.02 + s * 0.002,
+          tilt: ring.rotation
         };
 
         this.scene.add(e);
@@ -221,7 +232,7 @@ class AtomRenderer {
 
       e.position.x = Math.cos(e.userData.angle) * r;
       e.position.y = Math.sin(e.userData.angle) * r;
-      e.position.z = Math.sin(e.userData.angle * 0.7) * r * 0.4;
+      e.position.z = Math.sin(e.userData.angle * 0.65) * r * 0.45;
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -229,14 +240,28 @@ class AtomRenderer {
 }
 
 // ===============================
+// 🔥 AUTO DETECTION (NO HTML DEPENDENCY BUGS)
+// ===============================
+function startAutoSync() {
+  const sel = document.getElementById("element-select");
+  if (!sel) return;
+
+  let last = sel.value;
+
+  setInterval(() => {
+    if (sel.value !== last) {
+      last = sel.value;
+      loadElement();
+    }
+  }, 200);
+}
+
+// ===============================
 // INIT
 // ===============================
 window.addEventListener("DOMContentLoaded", () => {
-  const sel = document.getElementById("element-select");
-
-  if (sel) sel.addEventListener("change", loadElement);
-
-  window.atomRenderer = new AtomRenderer("atom-canvas");
+  window.atomEngine = new AtomEngine("atom-canvas");
 
   loadElement();
+  startAutoSync();
 });
