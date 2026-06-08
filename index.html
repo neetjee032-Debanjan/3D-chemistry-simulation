@@ -5,44 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Data Analytics Academy</title>
 
-<link rel="stylesheet" href="style.css"/>
-
+<link rel="stylesheet" href="styles.css"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<div class="app">
+<div class="layout">
 
-  <!-- LEFT NAV -->
   <aside class="sidebar">
-    <div class="logo">📊 Data Academy</div>
+    <div class="logo">📊 Data Analytics Academy</div>
 
     <button onclick="load('intro')">Introduction</button>
+    <button onclick="load('workflow')">Analytics Workflow</button>
     <button onclick="load('data')">Types of Data</button>
-    <button onclick="load('stats')">Statistics</button>
+    <button onclick="load('stats')">Statistics Basics</button>
     <button onclick="load('clean')">Data Cleaning</button>
     <button onclick="load('viz')">Visualization</button>
     <button onclick="load('sim')">Simulation Lab</button>
+    <button onclick="load('ml')">Machine Learning Intro</button>
 
-    <div class="bottom">
-      <button onclick="load('resources')">Resources</button>
-      <button onclick="load('contact')">Contact</button>
-    </div>
+    <hr/>
+
+    <button onclick="load('resources')">Resources</button>
+    <button onclick="load('contact')">Contact</button>
   </aside>
 
-  <!-- MAIN -->
   <main class="main">
 
-    <section class="hero">
-      <h1>Master Data Analytics</h1>
-      <p>From zero → industry-ready skills with interactive learning</p>
-    </section>
-
-    <section id="content" class="card">
-      <h2>Welcome 👋</h2>
-      <p>Select a topic from the left panel to start learning.</p>
-    </section>
+    <div id="content" class="card"></div>
 
     <canvas id="chart"></canvas>
 
@@ -50,6 +41,6 @@
 
 </div>
 
-<script src="script.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
